@@ -20,3 +20,7 @@ services:
         generateValue: true
       - key: NODE_ENV
         value: production
+      - key: COREPACK_ENABLE_DOWNLOAD_PROMPT
+        value: "0"
+      - key: PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN
+        value: "false"
