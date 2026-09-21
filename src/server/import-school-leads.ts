@@ -1,0 +1,18 @@
+import fs from "node:fs";
+import { loadEnvFile } from "node:process";
+import path from "node:path";
+import * as XLSX from "xlsx";
+import { hash } from "bcryptjs";
+import { and, eq, isNull, or } from "drizzle-orm";
+if (fs.existsSync(".env.local")) loadEnvFile(".env.local");
+else if (fs.existsSync(".env")) loadEnvFile(".env");
+type Row = Record<string, unknown>;
+const clean = (value: unknown) => String(value ?? "").trim();
+const absent = (value: unknown) => !clean(value) || clean(value).toLowerCase() === "not found";
+const email = (value: unknown) => absent(value) ? null : clean(value).toLowerCase();
+const phone = (value: unknown) => absent(value) ? null : clean(value).replace(/\s+/g, " ");
+const web = (value: unknown) => absent(value) ? null : clean(value);
+const priorityMap: Record<string, "LOW" | "MEDIUM" | "HIGH" | "URGENT"> = { A: "URGENT", B: "HIGH", C: "MEDIUM" };
+const priority = (value: unknown): "LOW" | "MEDIUM" | "HIGH" | "URGENT" => priorityMap[clean(value).toUpperCase()] ?? "MEDIUM";
+async function main() { const { db } = await import("./db"); const { activities, leads, users } = await import("./schema"); const workbook = XLSX.readFile(path.resolve("data/Arka_School_Leads.xlsx")); const sheet = workbook.Sheets["School Leads"]; if (!sheet) throw new Error("Expected School Leads worksheet was not found."); const rows = XLSX.utils.sheet_to_json<Row>(sheet, { defval: null }); const passwordHash = await hash("123456", 12); const [salesHead] = await db.insert(users).values({ id: "sales-head-nilesh-rawat", name: "Nilesh Rawat", email: "nileshrawat1325@gmail.com", role: "SALES_HEAD", active: true, passwordHash, mustChangePassword: true }).onConflictDoUpdate({ target: users.email, set: { name: "Nilesh Rawat", role: "SALES_HEAD", active: true, passwordHash, mustChangePassword: true, updatedAt: new Date() } }).returning(); let imported=0,duplicates=0,incomplete=0,invalid=0; for (const row of rows) { const companyName=clean(row["Business Name"]), phoneNumber=phone(row.Phone), emailAddress=email(row.Email), website=web(row.Website); if (!companyName) { invalid++; continue; } if (!phoneNumber || !emailAddress) incomplete++; const city=clean(row.City); const existing=await db.select({id:leads.id}).from(leads).where(or(phoneNumber?eq(leads.phone,phoneNumber):undefined,emailAddress?eq(leads.email,emailAddress):undefined,and(eq(leads.companyName,companyName),city?eq(leads.location,city):isNull(leads.location)))).limit(1); if(existing.length){duplicates++;continue;} await db.transaction(async tx=>{const [lead]=await tx.insert(leads).values({companyName,contactName:companyName,phone:phoneNumber,email:emailAddress,website,location:city||null,industry:clean(row.Category)||null,source:"SCHOOL_LEADS_IMPORT",serviceInterest:clean(row["Recommended Arka Service"])||null,score:Number(row["Lead Score"])||0,priority:priority(row["Priority Tier"]),status:"NEW",assigneeId:salesHead.id,createdBy:salesHead.id,notes:[clean(row["Full Address"]),clean(row["Digital Problem Identified"]),clean(row["Why Arka?"]),web(row["Google Maps URL"])].filter(Boolean).join("\n\n")||null}).returning();await tx.insert(activities).values({leadId:lead.id,actorId:salesHead.id,type:"LEAD_IMPORTED",description:"Lead imported from Arka School Leads and assigned to Nilesh Rawat",metadata:{rank:row.Rank,reviewCount:row["Review Count"],googleRating:row["Google Rating"]}})});imported++; } console.log(JSON.stringify({totalSpreadsheetRows:rows.length,successfullyImported:imported,duplicatesSkipped:duplicates,incompleteRows:incomplete,invalidRows:invalid,errors:0},null,2)); }
+main().then(()=>process.exit(0)).catch(error=>{console.error(error instanceof Error?error.message:error);process.exit(1)});

@@ -1,0 +1,27 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1789626495215,
+      "tag": "0000_sticky_crusher_hogan",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1789626904907,
+      "tag": "0001_rare_purifiers",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1789718400000,
+      "tag": "0002_demo_activity_layer",
+      "breakpoints": true
+    }
+  ]
+}

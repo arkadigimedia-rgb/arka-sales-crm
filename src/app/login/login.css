@@ -1,0 +1,22 @@
+.login{min-height:100vh;display:grid;place-items:center;background:#f4f7f5;padding:24px}
+.login section{background:#fff;width:min(100%,450px);padding:36px;border:1px solid #e4eae6;border-radius:16px;box-shadow:0 18px 50px #153e3112}
+.login-header-row{display:flex;justify-content:space-between;align-items:center}
+.login h1{margin:20px 0 7px}
+.login p{color:#708078;font-size:.9rem}
+.login form{margin-top:20px}
+.login label{display:block;font-size:.78rem;font-weight:700;margin:14px 0}
+.login input{display:block;width:100%;padding:11px;margin-top:7px;border:1px solid #d8e0dc;border-radius:8px;font:inherit}
+.login form .primary{width:100%;margin-top:8px}
+.login-error{color:#a73527;background:#fff0ed;padding:10px;border-radius:7px;font-size:.8rem}
+.login-demo-accounts{margin-top:24px;padding-top:18px;border-top:1px solid #eef2f0}
+.login-demo-accounts p{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#8b9d94;margin-bottom:10px}
+.demo-account-buttons{display:flex;flex-direction:column;gap:8px}
+.demo-account-btn{display:flex;align-items:center;justify-content:space-between;padding:9px 12px;background:#f8faf9;border:1px solid #e2e8e5;border-radius:8px;font-size:.8rem;text-align:left;cursor:pointer;transition:all .2s ease}
+.demo-account-btn:hover{background:#f0f5f2;border-color:#10b981}
+.demo-account-btn b{display:block;color:#1f2937}
+.demo-account-btn small{color:#6b7280;font-size:.72rem}
+.demo-role-badge{font-size:.68rem;font-weight:600;padding:2px 6px;border-radius:4px}
+.demo-role-badge.admin{background:#dbeafe;color:#1e40af}
+.demo-role-badge.sales_head{background:#d1fae5;color:#065f46}
+.demo-role-badge.salesperson{background:#fef3c7;color:#92400e}
+
