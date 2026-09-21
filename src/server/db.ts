@@ -7,9 +7,12 @@ let _db: NodePgDatabase<typeof schema> | null = null;
 export function getDb(): NodePgDatabase<typeof schema> {
   if (!_db) {
     if (!process.env.DATABASE_URL) throw new Error("DATABASE_URL is required");
+    const isLocal =
+      process.env.DATABASE_URL.includes("localhost") ||
+      process.env.DATABASE_URL.includes("127.0.0.1");
     const pool = new Pool({
       connectionString: process.env.DATABASE_URL,
-      ssl: process.env.NODE_ENV === "production" ? { rejectUnauthorized: true } : undefined,
+      ssl: isLocal ? false : { rejectUnauthorized: false },
     });
     _db = drizzle(pool, { schema });
   }

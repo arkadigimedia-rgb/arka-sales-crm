@@ -9,8 +9,8 @@ services:
     name: arka-sales-crm
     runtime: node
     plan: free
-    buildCommand: npm install -g pnpm && pnpm install && pnpm build
-    startCommand: pnpm db:migrate && pnpm db:seed:users && pnpm start
+    buildCommand: npm install -g pnpm && pnpm install --prod=false && pnpm build
+    startCommand: node scripts/start.mjs
     envVars:
       - key: DATABASE_URL
         fromDatabase:
