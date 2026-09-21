@@ -58,10 +58,18 @@ export async function POST(request: Request) {
     });
 
     return response;
-  } catch {
+  } catch (err) {
+    if (err instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: { code: "INVALID_REQUEST", message: "Enter a valid email and password." } },
+        { status: 400 }
+      );
+    }
+    const message = err instanceof Error ? err.message : "Authentication error.";
+    console.error("[login] Error during authentication:", err);
     return NextResponse.json(
-      { error: { code: "INVALID_REQUEST", message: "Enter a valid email and password." } },
-      { status: 400 }
+      { error: { code: "INTERNAL_ERROR", message } },
+      { status: 500 }
     );
   }
 }
