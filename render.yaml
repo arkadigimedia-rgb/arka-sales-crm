@@ -1,4 +1,4 @@
-﻿databases:
+databases:
   - name: arka-sales-db
     databaseName: arka_sales
     user: arka_user
@@ -9,8 +9,8 @@ services:
     name: arka-sales-crm
     runtime: node
     plan: free
-    buildCommand: npm install -g pnpm && pnpm install && pnpm db:migrate && pnpm build
-    startCommand: pnpm start
+    buildCommand: npm install -g pnpm && pnpm install && pnpm build
+    startCommand: pnpm db:migrate && pnpm db:seed:users && pnpm start
     envVars:
       - key: DATABASE_URL
         fromDatabase:
