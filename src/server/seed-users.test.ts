@@ -1,4 +1,4 @@
-﻿import { describe, it, expect } from "vitest";
+import { describe, it, expect } from "vitest";
 import { DEFAULT_USERS } from "./seed-users";
 
 describe("DEFAULT_USERS", () => {
@@ -12,5 +12,11 @@ describe("DEFAULT_USERS", () => {
     expect(salesHead).toBeDefined();
     expect(salesHead?.email).toBe("nileshrawat1325@gmail.com");
     expect(salesHead?.plainPassword).toBe("123456");
+
+    const salesRep = DEFAULT_USERS.find((u) => u.role === "SALESPERSON");
+    expect(salesRep).toBeDefined();
+    expect(salesRep?.email).toBe("gayathrivhere@gmail.com");
+    expect(salesRep?.name).toBe("Gayithri V");
+    expect(salesRep?.plainPassword).toBe("123456");
   });
 });

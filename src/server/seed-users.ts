@@ -1,5 +1,6 @@
-﻿import fs from "node:fs";
+import fs from "node:fs";
 import { loadEnvFile } from "node:process";
+import { eq } from "drizzle-orm";
 import { hash } from "bcryptjs";
 import { db } from "./db";
 import { users } from "./schema";
@@ -25,9 +26,9 @@ export const DEFAULT_USERS = [
     plainPassword: "123456",
   },
   {
-    id: "salesperson-aakash-sharma",
-    name: "Aakash Sharma",
-    email: "sales@arkasales.com",
+    id: "salesperson-gayithri-v",
+    name: "Gayithri V",
+    email: "gayathrivhere@gmail.com",
     role: "SALESPERSON" as const,
     active: true,
     plainPassword: "123456",
@@ -35,6 +36,7 @@ export const DEFAULT_USERS = [
 ];
 
 export async function seedDefaultUsers() {
+  await db.delete(users).where(eq(users.email, "sales@arkasales.com")).catch(() => {});
   const results = [];
   for (const u of DEFAULT_USERS) {
     const passwordHash = await hash(u.plainPassword, 10);

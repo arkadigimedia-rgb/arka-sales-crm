@@ -29,12 +29,6 @@ export default function Login() {
     router.refresh();
   }
 
-  function fillCredentials(fillEmail: string, fillPass: string) {
-    setEmail(fillEmail);
-    setPassword(fillPass);
-    setError("");
-  }
-
   return (
     <main className="login">
       <section>
@@ -79,47 +73,6 @@ export default function Login() {
             {loading ? "Signing in…" : "Sign in"}
           </button>
         </form>
-
-        <div className="login-demo-accounts">
-          <p>Quick Access Credentials</p>
-          <div className="demo-account-buttons">
-            <button
-              type="button"
-              className="demo-account-btn"
-              onClick={() => fillCredentials("admin@arkasales.com", "admin123")}
-            >
-              <div>
-                <b>admin@arkasales.com</b>
-                <small>Pass: admin123</small>
-              </div>
-              <span className="demo-role-badge admin">Admin (Founder)</span>
-            </button>
-
-            <button
-              type="button"
-              className="demo-account-btn"
-              onClick={() => fillCredentials("nileshrawat1325@gmail.com", "123456")}
-            >
-              <div>
-                <b>nileshrawat1325@gmail.com</b>
-                <small>Pass: 123456</small>
-              </div>
-              <span className="demo-role-badge sales_head">Sales Head</span>
-            </button>
-
-            <button
-              type="button"
-              className="demo-account-btn"
-              onClick={() => fillCredentials("sales@arkasales.com", "123456")}
-            >
-              <div>
-                <b>sales@arkasales.com</b>
-                <small>Pass: 123456</small>
-              </div>
-              <span className="demo-role-badge salesperson">Salesperson</span>
-            </button>
-          </div>
-        </div>
       </section>
     </main>
   );
