@@ -1,14 +1,102 @@
 import Link from "next/link";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, desc, eq, isNull, or } from "drizzle-orm";
 import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { leads } from "@/server/schema";
 import { ConnectionStatus } from "@/components/connection-status";
+import { LogoutButton } from "@/components/logout-button";
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; attention?: string }> }) {
   const user = await pageActor();
   const filters = await searchParams;
-  const where = and(user.role === "SALESPERSON" ? eq(leads.assigneeId, user.id) : undefined, filters.status ? eq(leads.status, filters.status as typeof leads.status.enumValues[number]) : undefined, filters.attention === "no-next-action" ? isNull(leads.nextAction) : undefined);
+  const where = and(
+    user.role === "SALESPERSON" ? or(eq(leads.assigneeId, user.id), isNull(leads.assigneeId)) : undefined,
+    filters.status ? eq(leads.status, filters.status as typeof leads.status.enumValues[number]) : undefined,
+    filters.attention === "no-next-action" ? isNull(leads.nextAction) : undefined
+  );
   const rows = await db.select().from(leads).where(where).orderBy(desc(leads.score), desc(leads.updatedAt));
-  return <div className="app-shell"><aside className="sidebar"><div className="brand"><span className="brand-mark">A</span>ARKA</div><p className="workspace">SALES COMMAND CENTER</p><Link className="nav-item" href="/dashboard">▦ Dashboard</Link><Link className="nav-item selected" href="/leads">◫ Leads <em>{rows.length}</em></Link><div className="sidebar-bottom"><div className="profile"><span>NR</span><div><b>{user.name}</b><small>{user.role.replace("_", " ")}</small></div></div></div></aside><main className="workspace-main"><header><div><p className="eyebrow">REAL SCHOOL LEADS</p><h1>Lead workspace</h1></div><div className="header-actions"><ConnectionStatus /><Link className="link" href="/dashboard">Dashboard</Link><Link className="primary" href="/import">Upload Excel</Link></div></header><section className="panel full"><div className="list-top"><div><h2>{rows.length} leads{filters.status ? ` in ${filters.status.replaceAll("_", " ")}` : filters.attention ? " requiring attention" : ""}</h2><p>Assigned to the sales team and ready for action.</p></div></div><div className="filters"><Link className="link" href="/leads">All leads</Link><Link className="link" href="/leads?attention=no-next-action">Needs action</Link><span>Prioritised by score — open a lead to view its complete record.</span></div><div className="table-scroll"><table><thead><tr><th>LEAD</th><th>CONTACT</th><th>STAGE</th><th>PRIORITY</th><th>NEXT ACTION</th><th></th></tr></thead><tbody>{rows.map(lead => <tr key={lead.id}><td><b>{lead.companyName}</b><small>{lead.location || "Location not provided"} · Score {lead.score}</small></td><td><b>{lead.contactName}</b><small>{lead.phone || lead.email || "No contact method"}</small></td><td><span className="stage">{lead.status.replaceAll("_", " ")}</span></td><td><span className={`priority ${lead.priority.toLowerCase()}`}>{lead.priority}</span></td><td>{lead.nextAction || "Needs a next action"}</td><td><Link className="link" href={`/leads/${lead.id}`}>Open →</Link></td></tr>)}</tbody></table></div>{rows.length === 0 && <p className="empty-note">No leads match this view.</p>}</section></main></div>;
+  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U";
+
+  return (
+    <div className="app-shell">
+      <aside className="sidebar">
+        <div className="brand">
+          <span className="brand-mark">A</span>ARKA
+        </div>
+        <p className="workspace">SALES COMMAND CENTER</p>
+        <Link className="nav-item" href="/dashboard">▦ Dashboard</Link>
+        <Link className="nav-item selected" href="/leads">◫ Leads <em>{rows.length}</em></Link>
+        <div className="sidebar-bottom">
+          <div className="profile">
+            <span>{initials}</span>
+            <div>
+              <b>{user.name}</b>
+              <small>{user.role.replace("_", " ")}</small>
+            </div>
+          </div>
+          <LogoutButton variant="sidebar" />
+        </div>
+      </aside>
+      <main className="workspace-main">
+        <header>
+          <div>
+            <p className="eyebrow">REAL SCHOOL LEADS</p>
+            <h1>Lead workspace</h1>
+          </div>
+          <div className="header-actions">
+            <ConnectionStatus />
+            <Link className="link" href="/dashboard">Dashboard</Link>
+            <Link className="primary" href="/import">Upload Excel</Link>
+            <LogoutButton variant="header" />
+          </div>
+        </header>
+        <section className="panel full">
+          <div className="list-top">
+            <div>
+              <h2>{rows.length} leads{filters.status ? ` in ${filters.status.replaceAll("_", " ")}` : filters.attention ? " requiring attention" : ""}</h2>
+              <p>Assigned to the sales team and ready for action.</p>
+            </div>
+          </div>
+          <div className="filters">
+            <Link className="link" href="/leads">All leads</Link>
+            <Link className="link" href="/leads?attention=no-next-action">Needs action</Link>
+            <span>Prioritised by score — open a lead to view its complete record.</span>
+          </div>
+          <div className="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>LEAD</th>
+                  <th>CONTACT</th>
+                  <th>STAGE</th>
+                  <th>PRIORITY</th>
+                  <th>NEXT ACTION</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((lead) => (
+                  <tr key={lead.id}>
+                    <td>
+                      <b>{lead.companyName}</b>
+                      <small>{lead.location || "Location not provided"} · Score {lead.score}</small>
+                    </td>
+                    <td>
+                      <b>{lead.contactName}</b>
+                      <small>{lead.phone || lead.email || "No contact method"}</small>
+                    </td>
+                    <td><span className="stage">{lead.status.replaceAll("_", " ")}</span></td>
+                    <td><span className={`priority ${lead.priority.toLowerCase()}`}>{lead.priority}</span></td>
+                    <td>{lead.nextAction || "Needs a next action"}</td>
+                    <td><Link className="link" href={`/leads/${lead.id}`}>Open →</Link></td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {rows.length === 0 && <p className="empty-note">No leads match this view.</p>}
+        </section>
+      </main>
+    </div>
+  );
 }

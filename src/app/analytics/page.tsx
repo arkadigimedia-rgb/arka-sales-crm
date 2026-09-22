@@ -3,5 +3,91 @@ import { desc, eq, sql } from "drizzle-orm";
 import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { calls, leads } from "@/server/schema";
+import { ConnectionStatus } from "@/components/connection-status";
+import { LogoutButton } from "@/components/logout-button";
+
 const label = (value: string) => value.replaceAll("_", " ");
-export default async function Analytics() { const user = await pageActor(); const scope = user.role === "SALESPERSON" ? eq(leads.assigneeId, user.id) : undefined; const [outcomes, stages, cities] = await Promise.all([db.select({ outcome: calls.outcome, count: sql<number>`count(*)` }).from(calls).innerJoin(leads, eq(calls.leadId, leads.id)).where(scope).groupBy(calls.outcome), db.select({ status: leads.status, count: sql<number>`count(*)` }).from(leads).where(scope).groupBy(leads.status), db.select({ city: leads.location, count: sql<number>`count(*)` }).from(leads).where(scope).groupBy(leads.location).orderBy(desc(sql<number>`count(*)`)).limit(8)]); const totalCalls = outcomes.reduce((sum, item) => sum + Number(item.count), 0); const maxOutcome = Math.max(1, ...outcomes.map(item => Number(item.count))); return <main className="analytics"><header><div><p className="eyebrow">ARKA SALES INTELLIGENCE</p><h1>Operational activity</h1><p className="muted">Every measure below is calculated from recorded PostgreSQL data.</p></div><Link className="button" href="/dashboard">Back to dashboard</Link></header><section className="analytics-grid"><section className="panel"><div className="panel-head"><div><h2>Call outcomes</h2><span>{totalCalls} recorded call attempts</span></div></div>{outcomes.length ? <div className="bars">{outcomes.map(item => <Link key={item.outcome} href={`/leads?contactOutcome=${item.outcome}`}><span>{label(item.outcome)}</span><i><b style={{ width: `${(Number(item.count) / maxOutcome) * 100}%` }}/></i><em>{item.count}</em></Link>)}</div> : <p className="command-empty">No call data available for this period.</p>}</section><section className="panel"><div className="panel-head"><div><h2>Sales funnel</h2><span>Current pipeline distribution</span></div></div><div className="bars">{stages.map(item => <Link key={item.status} href={`/leads?status=${item.status}`}><span>{label(item.status)}</span><i><b style={{ width: `${Math.min(100, Number(item.count) * 4)}%` }}/></i><em>{item.count}</em></Link>)}</div></section><section className="panel"><div className="panel-head"><div><h2>Geographic distribution</h2><span>Lead concentration by location</span></div></div><div className="bars">{cities.map(item => <Link key={item.city || "unknown"} href={`/leads?location=${encodeURIComponent(item.city || "")}`}><span>{item.city || "Location not provided"}</span><i><b style={{ width: `${(Number(item.count) / Math.max(1, Number(cities[0]?.count || 1))) * 100}%` }}/></i><em>{item.count}</em></Link>)}</div></section></section></main>; }
+export default async function Analytics() {
+  const user = await pageActor();
+  const scope = user.role === "SALESPERSON" ? eq(leads.assigneeId, user.id) : undefined;
+  const [outcomes, stages, cities] = await Promise.all([
+    db.select({ outcome: calls.outcome, count: sql<number>`count(*)` }).from(calls).innerJoin(leads, eq(calls.leadId, leads.id)).where(scope).groupBy(calls.outcome),
+    db.select({ status: leads.status, count: sql<number>`count(*)` }).from(leads).where(scope).groupBy(leads.status),
+    db.select({ city: leads.location, count: sql<number>`count(*)` }).from(leads).where(scope).groupBy(leads.location).orderBy(desc(sql<number>`count(*)`)).limit(8)
+  ]);
+  const totalCalls = outcomes.reduce((sum, item) => sum + Number(item.count), 0);
+  const maxOutcome = Math.max(1, ...outcomes.map(item => Number(item.count)));
+  return (
+    <main className="analytics">
+      <header>
+        <div>
+          <p className="eyebrow">ARKA SALES INTELLIGENCE</p>
+          <h1>Operational activity</h1>
+          <p className="muted">Every measure below is calculated from recorded PostgreSQL data.</p>
+        </div>
+        <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
+          <ConnectionStatus />
+          <Link className="button" href="/dashboard">Back to dashboard</Link>
+          <LogoutButton variant="header" />
+        </div>
+      </header>
+      <section className="analytics-grid">
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Call outcomes</h2>
+              <span>{totalCalls} recorded call attempts</span>
+            </div>
+          </div>
+          {outcomes.length ? (
+            <div className="bars">
+              {outcomes.map(item => (
+                <Link key={item.outcome} href={`/leads?contactOutcome=${item.outcome}`}>
+                  <span>{label(item.outcome)}</span>
+                  <i><b style={{ width: `${(Number(item.count) / maxOutcome) * 100}%` }}/></i>
+                  <em>{item.count}</em>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <p className="command-empty">No call data available for this period.</p>
+          )}
+        </section>
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Sales funnel</h2>
+              <span>Current pipeline distribution</span>
+            </div>
+          </div>
+          <div className="bars">
+            {stages.map(item => (
+              <Link key={item.status} href={`/leads?status=${item.status}`}>
+                <span>{label(item.status)}</span>
+                <i><b style={{ width: `${Math.min(100, Number(item.count) * 4)}%` }}/></i>
+                <em>{item.count}</em>
+              </Link>
+            ))}
+          </div>
+        </section>
+        <section className="panel">
+          <div className="panel-head">
+            <div>
+              <h2>Geographic distribution</h2>
+              <span>Lead concentration by location</span>
+            </div>
+          </div>
+          <div className="bars">
+            {cities.map(item => (
+              <Link key={item.city || "unknown"} href={`/leads?location=${encodeURIComponent(item.city || "")}`}>
+                <span>{item.city || "Location not provided"}</span>
+                <i><b style={{ width: `${(Number(item.count) / Math.max(1, Number(cities[0]?.count || 1))) * 100}%` }}/></i>
+                <em>{item.count}</em>
+              </Link>
+            ))}
+          </div>
+        </section>
+      </section>
+    </main>
+  );
+}
