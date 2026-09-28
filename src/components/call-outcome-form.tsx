@@ -2,8 +2,30 @@
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
 const options = [["SPOKE", "Spoke"], ["NO_ANSWER", "No answer"], ["BUSY", "Busy"], ["CALL_BACK_LATER", "Call back"], ["WRONG_NUMBER", "Wrong number"], ["NOT_REACHABLE", "Not reachable"], ["OTHER", "Other"]] as const;
+const durationPresets = [
+  [15, "15s"],
+  [30, "30s"],
+  [45, "45s"],
+  [60, "1m"],
+  [90, "1.5m"],
+  [120, "2m"],
+  [180, "3m"],
+  [300, "5m"],
+  [600, "10m"],
+] as const;
+
+function formatDuration(sec: number): string {
+  if (sec <= 0) return "0s";
+  const mins = Math.floor(sec / 60);
+  const remSec = sec % 60;
+  if (mins === 0) return `${remSec}s`;
+  if (remSec === 0) return `${mins}m (${sec}s)`;
+  return `${mins}m ${remSec}s (${sec}s)`;
+}
+
 export function CallOutcomeForm({ leadId }: { leadId: string }) {
   const [outcome, setOutcome] = useState<string>("");
+  const [duration, setDuration] = useState<string>("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
   const router = useRouter();
@@ -39,6 +61,7 @@ export function CallOutcomeForm({ leadId }: { leadId: string }) {
     router.refresh();
     event.currentTarget.reset();
     setOutcome("");
+    setDuration("");
   }
 
   return (
@@ -57,10 +80,62 @@ export function CallOutcomeForm({ leadId }: { leadId: string }) {
           </button>
         ))}
       </div>
-      <label>
-        Duration in seconds (optional)
-        <input name="duration" type="number" min="0" placeholder="e.g. 60" />
-      </label>
+
+      <div className="duration-section">
+        <div className="duration-display-row">
+          <span>Duration in seconds (scroller)</span>
+          {duration !== "" ? (
+            <span className="duration-info">
+              <span className="duration-val">{formatDuration(Number(duration))}</span>
+              <button
+                type="button"
+                className="duration-clear"
+                onClick={() => setDuration("")}
+              >
+                Clear
+              </button>
+            </span>
+          ) : (
+            <span className="duration-empty">Optional (0s)</span>
+          )}
+        </div>
+
+        {/* Range scroller for seconds */}
+        <input
+          type="range"
+          min="0"
+          max="600"
+          step="5"
+          value={duration === "" ? 0 : Number(duration)}
+          onChange={(e) => setDuration(e.target.value)}
+          className="duration-slider"
+          aria-label="Call duration scroller in seconds"
+        />
+
+        {/* Quick second presets */}
+        <div className="duration-presets">
+          {durationPresets.map(([sec, label]) => (
+            <button
+              key={sec}
+              type="button"
+              className={duration !== "" && Number(duration) === sec ? "chosen" : ""}
+              onClick={() => setDuration(String(sec))}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {/* Direct number input */}
+        <input
+          name="duration"
+          type="number"
+          min="0"
+          value={duration}
+          onChange={(e) => setDuration(e.target.value)}
+          placeholder="Or type exact seconds (e.g. 45)"
+        />
+      </div>
       {spoke && (
         <>
           <label>
