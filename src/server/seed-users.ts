@@ -25,17 +25,10 @@ export const DEFAULT_USERS = [
     active: true,
     plainPassword: "123456",
   },
-  {
-    id: "salesperson-gayithri-v",
-    name: "Gayithri V",
-    email: "gayathrivhere@gmail.com",
-    role: "SALESPERSON" as const,
-    active: true,
-    plainPassword: "123456",
-  },
 ];
 
 export async function seedDefaultUsers() {
+  await db.delete(users).where(eq(users.email, "gayathrivhere@gmail.com")).catch(() => {});
   await db.delete(users).where(eq(users.email, "sales@arkasales.com")).catch(() => {});
   const results = [];
   for (const u of DEFAULT_USERS) {

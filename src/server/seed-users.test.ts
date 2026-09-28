@@ -13,10 +13,6 @@ describe("DEFAULT_USERS", () => {
     expect(salesHead?.email).toBe("nileshrawat1325@gmail.com");
     expect(salesHead?.plainPassword).toBe("123456");
 
-    const salesRep = DEFAULT_USERS.find((u) => u.role === "SALESPERSON");
-    expect(salesRep).toBeDefined();
-    expect(salesRep?.email).toBe("gayathrivhere@gmail.com");
-    expect(salesRep?.name).toBe("Gayithri V");
-    expect(salesRep?.plainPassword).toBe("123456");
+    expect(DEFAULT_USERS).toHaveLength(2);
   });
 });

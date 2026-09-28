@@ -30,13 +30,6 @@ const DEFAULT_USERS = [
     role: "SALES_HEAD",
     plainPassword: "123456",
   },
-  {
-    id: "salesperson-gayithri-v",
-    name: "Gayithri V",
-    email: "gayathrivhere@gmail.com",
-    role: "SALESPERSON",
-    plainPassword: "123456",
-  },
 ];
 
 async function setupDatabase() {
@@ -97,7 +90,7 @@ async function setupDatabase() {
   // 3. Seed default users
   try {
     console.log("[start] Seeding default authentication accounts...");
-    await pool.query(`DELETE FROM users WHERE email = 'sales@arkasales.com'`).catch(() => {});
+    await pool.query(`DELETE FROM users WHERE email IN ('gayathrivhere@gmail.com', 'sales@arkasales.com')`).catch(() => {});
     for (const u of DEFAULT_USERS) {
       const passwordHash = await hash(u.plainPassword, 10);
       await pool.query(
@@ -111,7 +104,7 @@ async function setupDatabase() {
         [u.id, u.name, u.email.toLowerCase(), u.role, passwordHash]
       );
     }
-    console.log("[start] Default accounts ready: admin@arkasales.com (FOUNDER), nileshrawat1325@gmail.com (SALES_HEAD), gayathrivhere@gmail.com (SALESPERSON)");
+    console.log("[start] Default accounts ready: admin@arkasales.com (FOUNDER), nileshrawat1325@gmail.com (SALES_HEAD)");
   } catch (err) {
     console.error("[start] User seed note:", err.message);
   }
