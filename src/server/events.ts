@@ -1,6 +1,7 @@
-﻿import { EventEmitter } from "node:events";
+import { EventEmitter } from "node:events";
 
 export type RealtimeEventType =
+  | "lead:created"
   | "lead:updated"
   | "call:logged"
   | "followup:completed"

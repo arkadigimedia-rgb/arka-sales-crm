@@ -26,6 +26,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
         <p className="workspace">SALES COMMAND CENTER</p>
         <Link className="nav-item" href="/dashboard">▦ Dashboard</Link>
         <Link className="nav-item selected" href="/leads">◫ Leads <em>{rows.length}</em></Link>
+        <Link className="nav-item" href="/leads/new">✚ Add Lead</Link>
+        <Link className="nav-item" href="/import">⇪ Upload Excel</Link>
         <div className="sidebar-bottom">
           <div className="profile">
             <span>{initials}</span>
@@ -46,7 +48,8 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <div className="header-actions">
             <ConnectionStatus />
             <Link className="link" href="/dashboard">Dashboard</Link>
-            <Link className="primary" href="/import">Upload Excel</Link>
+            <Link className="primary" href="/leads/new">+ Add Lead</Link>
+            <Link className="link" href="/import">Upload Excel</Link>
             <LogoutButton variant="header" />
           </div>
         </header>

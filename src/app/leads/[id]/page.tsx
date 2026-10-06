@@ -32,6 +32,8 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
         <p className="workspace">SALES COMMAND CENTER</p>
         <Link className="nav-item" href="/dashboard">▦ Dashboard</Link>
         <Link className="nav-item selected" href="/leads">◫ Leads</Link>
+        <Link className="nav-item" href="/leads/new">✚ Add Lead</Link>
+        <Link className="nav-item" href="/import">⇪ Upload Excel</Link>
         <div className="sidebar-bottom">
           <div className="profile">
             <span>{initials}</span>

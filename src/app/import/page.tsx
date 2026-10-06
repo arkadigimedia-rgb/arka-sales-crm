@@ -40,6 +40,13 @@ export default function ImportPage() {
         </form>
         {message && <p className="import-message">{message}</p>}
         <p className="import-note">Duplicate phone numbers, emails, or company + location combinations are skipped, so it is safe to upload an updated sheet.</p>
+        <div style={{ marginTop: "24px", paddingTop: "18px", borderTop: "1px solid var(--line)", display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "10px" }}>
+          <div>
+            <b style={{ fontSize: "0.88rem" }}>Need to add a single lead manually?</b>
+            <p style={{ margin: "3px 0 0", fontSize: "0.78rem", color: "var(--muted)" }}>Add school details directly without needing an Excel sheet.</p>
+          </div>
+          <Link className="primary" href="/leads/new">+ Add Single Lead</Link>
+        </div>
       </section>
     </main>
   );
