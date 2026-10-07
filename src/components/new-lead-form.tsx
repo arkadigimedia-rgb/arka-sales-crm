@@ -24,6 +24,15 @@ const commonResponses = [
   "Not interested at the moment",
 ] as const;
 
+const commonSources = [
+  "Meta Lead",
+  "Cold Calling",
+  "Website / Inbound",
+  "Referral",
+  "WhatsApp",
+  "Other",
+] as const;
+
 export function NewLeadForm({
   currentUserId,
 }: {
@@ -33,6 +42,7 @@ export function NewLeadForm({
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [source, setSource] = useState<string>("Meta Lead");
   const [leadResponse, setLeadResponse] = useState("");
   const [showMore, setShowMore] = useState(false);
 
@@ -58,6 +68,9 @@ export function NewLeadForm({
     // Default assignee to current user if not chosen
     if (!payload.assigneeId) {
       payload.assigneeId = currentUserId;
+    }
+    if (!payload.source) {
+      payload.source = source || "Meta Lead";
     }
 
     setSaving(true);
@@ -91,7 +104,7 @@ export function NewLeadForm({
         <p className="eyebrow">QUICK LEAD ENTRY</p>
         <h1>Add New Lead</h1>
         <p>
-          Enter the business name, contact number, response, and service required.
+          Enter the business name, contact number, lead type, service required, and initial response.
         </p>
       </div>
 
@@ -121,7 +134,31 @@ export function NewLeadForm({
             />
           </label>
 
-          {/* 3. Service Required */}
+          {/* 3. Lead Type / Source */}
+          <label className="lead-label">
+            Lead Type / Source
+            <div className="source-chips">
+              {commonSources.map((s) => (
+                <button
+                  key={s}
+                  type="button"
+                  className={`source-chip ${source === s ? "chosen" : ""}`}
+                  onClick={() => setSource(s)}
+                >
+                  {s === "Meta Lead" ? "🎯 Meta Lead" : s === "Cold Calling" ? "📞 Cold Calling" : s}
+                </button>
+              ))}
+            </div>
+            <input
+              name="source"
+              type="text"
+              value={source}
+              onChange={(e) => setSource(e.target.value)}
+              placeholder="Or specify custom source..."
+            />
+          </label>
+
+          {/* 4. Service Required */}
           <label className="lead-label">
             Service Required
             <input

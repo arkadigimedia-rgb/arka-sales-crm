@@ -82,6 +82,37 @@
   resize: vertical;
 }
 
+.source-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 4px;
+}
+
+.source-chip {
+  background: #f3f6f4;
+  border: 1.5px solid #d8e2dd;
+  border-radius: 7px;
+  padding: 6px 12px;
+  font-size: 0.77rem;
+  font-weight: 700;
+  color: #274d3d;
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.source-chip:hover {
+  background: #e4ece7;
+  border-color: var(--green);
+}
+
+.source-chip.chosen {
+  background: var(--green);
+  color: #ffffff;
+  border-color: var(--green);
+  box-shadow: 0 2px 6px rgba(22, 99, 75, 0.2);
+}
+
 .response-chips {
   display: flex;
   flex-wrap: wrap;
