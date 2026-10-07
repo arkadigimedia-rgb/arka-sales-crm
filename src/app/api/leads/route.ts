@@ -14,7 +14,7 @@ const emptyToNull = (val: unknown) => {
 };
 
 const input = z.object({
-  companyName: z.string().min(1, "Company or school name is required"),
+  companyName: z.string().min(1, "Business name is required"),
   contactName: z.preprocess(emptyToNull, z.string().nullable().optional()),
   email: z.preprocess(emptyToNull, z.string().email("Invalid email address").nullable().optional()),
   phone: z.preprocess(emptyToNull, z.string().nullable().optional()),
@@ -28,6 +28,7 @@ const input = z.object({
   score: z.preprocess(emptyToNull, z.coerce.number().int().min(0).max(100).default(50).optional()),
   priority: z.enum(["LOW", "MEDIUM", "HIGH", "URGENT"]).default("MEDIUM"),
   assigneeId: z.preprocess(emptyToNull, z.string().nullable().optional()),
+  leadResponse: z.preprocess(emptyToNull, z.string().nullable().optional()),
   nextAction: z.preprocess(emptyToNull, z.string().nullable().optional()),
   nextFollowUpAt: z.preprocess(emptyToNull, z.coerce.date().nullable().optional()),
   notes: z.preprocess(emptyToNull, z.string().nullable().optional()),
@@ -88,12 +89,14 @@ export async function POST(request: NextRequest) {
           website: data.website ?? null,
           location: data.location ?? null,
           source: data.source || "MANUAL_ENTRY",
-          industry: data.industry || "School / Education",
+          industry: data.industry || "General Business",
           serviceInterest: data.serviceInterest ?? null,
+          leadResponse: data.leadResponse ?? null,
+          lastContactAt: data.leadResponse ? new Date() : null,
           companySize: data.companySize ?? null,
           score: data.score ?? 50,
           priority: data.priority,
-          status: assigneeId ? "ASSIGNED" : "NEW",
+          status: data.leadResponse ? "CONTACTED" : (assigneeId ? "ASSIGNED" : "NEW"),
           assigneeId,
           createdBy: user.id,
           nextAction: data.nextAction ?? null,
@@ -116,7 +119,7 @@ export async function POST(request: NextRequest) {
         leadId: created.id,
         actorId: user.id,
         type: "LEAD_CREATED",
-        description: `Created lead ${created.companyName}`,
+        description: `Created lead ${created.companyName}${data.leadResponse ? ` (Response: ${data.leadResponse})` : ""}`,
       });
 
       return [created];

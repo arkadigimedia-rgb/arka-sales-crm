@@ -5,22 +5,36 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import "./new-lead-form.css";
 
-type UserOption = {
-  id: string;
-  name: string;
-  role: string;
-};
+const commonServices = [
+  "Website Redesign & SEO",
+  "Social Media & Digital Marketing",
+  "Lead Generation Campaign",
+  "ERP & School Automation",
+  "Business CRM Setup",
+  "Branding & Creative Services",
+  "Custom Software / Web App",
+] as const;
+
+const commonResponses = [
+  "We will reach out",
+  "Interested in demo",
+  "Pitched for lead generation",
+  "Call back later",
+  "Requested proposal & pricing",
+  "Not interested at the moment",
+] as const;
 
 export function NewLeadForm({
-  users,
   currentUserId,
 }: {
-  users: UserOption[];
+  users?: { id: string; name: string; role: string }[];
   currentUserId: string;
 }) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [leadResponse, setLeadResponse] = useState("");
+  const [showMore, setShowMore] = useState(false);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -37,8 +51,13 @@ export function NewLeadForm({
     }
 
     if (!payload.companyName) {
-      setError("Please provide a School or Company Name.");
+      setError("Please provide a Business Name.");
       return;
+    }
+
+    // Default assignee to current user if not chosen
+    if (!payload.assigneeId) {
+      payload.assigneeId = currentUserId;
     }
 
     setSaving(true);
@@ -53,7 +72,7 @@ export function NewLeadForm({
       setSaving(false);
 
       if (!response.ok) {
-        setError(data.error || "Could not save the new lead. Please review the details.");
+        setError(data.error || "Could not save the lead. Please check the details.");
         return;
       }
 
@@ -69,192 +88,106 @@ export function NewLeadForm({
   return (
     <div className="new-lead-card">
       <div className="new-lead-header">
-        <p className="eyebrow">DIRECT LEAD ENTRY</p>
+        <p className="eyebrow">QUICK LEAD ENTRY</p>
         <h1>Add New Lead</h1>
         <p>
-          Manually register a school or client opportunity into the CRM. Once created, you can immediately begin logging calls, notes, and scheduled follow-ups.
+          Enter the business name, contact number, response, and service required.
         </p>
       </div>
 
       {error && <div className="error-banner">⚠️ {error}</div>}
 
       <form onSubmit={submit}>
-        {/* Section 1: School & Contact Details */}
-        <section className="lead-form-section">
-          <h3>
-            <span>1</span> School / Institution Details
-          </h3>
-          <div className="lead-grid">
-            <label className="lead-label lead-field-full">
-              School or Company Name *
-              <input
-                name="companyName"
-                type="text"
-                required
-                placeholder="e.g. Greenwood High International School"
-              />
-            </label>
+        <div className="lead-fields-stack">
+          {/* 1. Business Name */}
+          <label className="lead-label">
+            Business Name *
+            <input
+              name="companyName"
+              type="text"
+              required
+              autoFocus
+              placeholder="e.g. Greenwood Enterprises, Delhi Public School..."
+            />
+          </label>
 
-            <label className="lead-label">
-              Primary Contact Person
-              <small>Principal, Director, or Admin Head</small>
-              <input
-                name="contactName"
-                type="text"
-                placeholder="e.g. Dr. Rajesh Sharma"
-              />
-            </label>
+          {/* 2. Number */}
+          <label className="lead-label">
+            Phone Number
+            <input
+              name="phone"
+              type="tel"
+              placeholder="e.g. +91 98765 43210"
+            />
+          </label>
 
-            <label className="lead-label">
-              Phone Number
-              <small>Mobile or direct office line</small>
-              <input
-                name="phone"
-                type="tel"
-                placeholder="e.g. +91 98765 43210"
-              />
-            </label>
+          {/* 3. Service Required */}
+          <label className="lead-label">
+            Service Required
+            <input
+              name="serviceInterest"
+              type="text"
+              list="services-options"
+              placeholder="e.g. Website Redesign & SEO, Digital Marketing..."
+            />
+            <datalist id="services-options">
+              {commonServices.map((service) => (
+                <option key={service} value={service} />
+              ))}
+            </datalist>
+          </label>
 
-            <label className="lead-label">
-              WhatsApp Number
-              <small>For WhatsApp brochures / follow-up</small>
-              <input
-                name="whatsapp"
-                type="tel"
-                placeholder="e.g. +91 98765 43210"
-              />
-            </label>
+          {/* 4. Response */}
+          <label className="lead-label">
+            Lead Response
+            <textarea
+              name="leadResponse"
+              value={leadResponse}
+              onChange={(e) => setLeadResponse(e.target.value)}
+              placeholder="e.g. We will reach out, Interested in demo, Pitched for lead generation..."
+            />
+            <div className="response-chips">
+              {commonResponses.map((res) => (
+                <button
+                  key={res}
+                  type="button"
+                  className="response-chip"
+                  onClick={() => setLeadResponse(res)}
+                >
+                  {res}
+                </button>
+              ))}
+            </div>
+          </label>
 
-            <label className="lead-label">
-              Email Address
-              <small>Official or management email</small>
-              <input
-                name="email"
-                type="email"
-                placeholder="e.g. principal@greenwood.edu.in"
-              />
-            </label>
+          {/* Optional additional details toggle */}
+          <div>
+            <button
+              type="button"
+              className="optional-toggle"
+              onClick={() => setShowMore(!showMore)}
+            >
+              {showMore ? "− Hide additional options" : "+ Additional options (Follow-up & Notes)"}
+            </button>
 
-            <label className="lead-label">
-              City / Location
-              <small>Campus location or city</small>
-              <input
-                name="location"
-                type="text"
-                placeholder="e.g. Bangalore, Karnataka"
-              />
-            </label>
+            {showMore && (
+              <div className="optional-box">
+                <label className="lead-label">
+                  Next Follow-up Date & Time (optional)
+                  <input name="nextFollowUpAt" type="datetime-local" />
+                </label>
 
-            <label className="lead-label">
-              Website URL
-              <small>Existing school website</small>
-              <input
-                name="website"
-                type="text"
-                placeholder="e.g. https://greenwoodhigh.edu.in"
-              />
-            </label>
+                <label className="lead-label">
+                  Notes (optional)
+                  <textarea
+                    name="notes"
+                    placeholder="Any extra details or discussion notes..."
+                  />
+                </label>
+              </div>
+            )}
           </div>
-        </section>
-
-        {/* Section 2: Opportunity & Services */}
-        <section className="lead-form-section">
-          <h3>
-            <span>2</span> Opportunity & Arka Offerings
-          </h3>
-          <div className="lead-grid">
-            <label className="lead-label">
-              Category / Industry
-              <select name="industry" defaultValue="School / Education">
-                <option value="School / Education">School / K-12 Education</option>
-                <option value="College / Higher Education">College / Higher Education</option>
-                <option value="Coaching / EdTech">Coaching / Test Prep / EdTech</option>
-                <option value="Preschool / Daycare">Preschool / Montessori</option>
-                <option value="Corporate / Training">Corporate Training</option>
-                <option value="Other">Other</option>
-              </select>
-            </label>
-
-            <label className="lead-label">
-              Recommended Arka Service
-              <select name="serviceInterest" defaultValue="Website Redesign & SEO">
-                <option value="Website Redesign & SEO">Website Redesign & SEO</option>
-                <option value="ERP & School Automation">ERP & School Automation</option>
-                <option value="Social Media & Digital Marketing">Social Media & Digital Marketing</option>
-                <option value="Lead Generation & Admissions">Lead Generation & Admissions Campaign</option>
-                <option value="School CRM Setup">School CRM Setup</option>
-                <option value="Branding & Creative Services">Branding & Creative Services</option>
-                <option value="Custom Software">Custom Software / App</option>
-              </select>
-            </label>
-
-            <label className="lead-label">
-              Priority Tier
-              <select name="priority" defaultValue="MEDIUM">
-                <option value="URGENT">URGENT (Tier A - Hot opportunity)</option>
-                <option value="HIGH">HIGH (Tier B - High priority)</option>
-                <option value="MEDIUM">MEDIUM (Tier C - Standard)</option>
-                <option value="LOW">LOW (Tier D - Low urgency)</option>
-              </select>
-            </label>
-
-            <label className="lead-label">
-              Lead Score (0 - 100)
-              <input
-                name="score"
-                type="number"
-                min="0"
-                max="100"
-                defaultValue="60"
-              />
-            </label>
-          </div>
-        </section>
-
-        {/* Section 3: Assignment & Action Plan */}
-        <section className="lead-form-section">
-          <h3>
-            <span>3</span> Ownership & Action Plan
-          </h3>
-          <div className="lead-grid">
-            <label className="lead-label">
-              Assign Lead To
-              <select name="assigneeId" defaultValue={currentUserId}>
-                {users.map((u) => (
-                  <option key={u.id} value={u.id}>
-                    {u.name} ({u.role.replace("_", " ")})
-                  </option>
-                ))}
-              </select>
-            </label>
-
-            <label className="lead-label">
-              Initial Next Action
-              <input
-                name="nextAction"
-                type="text"
-                placeholder="e.g. Introductory discovery call with Principal"
-              />
-            </label>
-
-            <label className="lead-label lead-field-full">
-              Next Follow-Up Date & Time (optional)
-              <input
-                name="nextFollowUpAt"
-                type="datetime-local"
-              />
-            </label>
-
-            <label className="lead-label lead-field-full">
-              Notes & Requirements (optional)
-              <small>Address, existing pain points, referral details, or why they need Arka</small>
-              <textarea
-                name="notes"
-                placeholder="e.g. Current website is outdated, looking for admissions boost for upcoming academic year..."
-              />
-            </label>
-          </div>
-        </section>
+        </div>
 
         <div className="form-actions-bar">
           <button type="submit" className="primary" disabled={saving}>

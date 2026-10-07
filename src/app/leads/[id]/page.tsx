@@ -55,7 +55,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
         </div>
         <header className="detail-header">
           <div>
-            <p className="eyebrow">SCHOOL LEAD · SCORE {lead.score}</p>
+            <p className="eyebrow">BUSINESS LEAD · SCORE {lead.score}</p>
             <h1>{lead.companyName}</h1>
             <p className="muted">{lead.location || "Location not provided"}</p>
           </div>

@@ -42,7 +42,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
       <main className="workspace-main">
         <header>
           <div>
-            <p className="eyebrow">REAL SCHOOL LEADS</p>
+            <p className="eyebrow">BUSINESS LEADS</p>
             <h1>Lead workspace</h1>
           </div>
           <div className="header-actions">
