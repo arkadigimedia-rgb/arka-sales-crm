@@ -4,6 +4,7 @@ import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { leads } from "@/server/schema";
 import { ConnectionStatus } from "@/components/connection-status";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 import { LogoutButton } from "@/components/logout-button";
 
 export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; attention?: string }> }) {
@@ -47,6 +48,7 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           </div>
           <div className="header-actions">
             <ConnectionStatus />
+            <InstallPwaButton />
             <Link className="link" href="/dashboard">Dashboard</Link>
             <Link className="primary" href="/leads/new">+ Add Lead</Link>
             <Link className="link" href="/import">Upload Excel</Link>

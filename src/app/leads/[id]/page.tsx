@@ -6,6 +6,7 @@ import { db } from "@/server/db";
 import { activities, calls, comments, followUps, leads, meetings, proposals } from "@/server/schema";
 import { CallOutcomeForm } from "@/components/call-outcome-form";
 import { ConnectionStatus } from "@/components/connection-status";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 import { LogoutButton } from "@/components/logout-button";
 
 export default async function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
@@ -50,6 +51,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
           <Link className="link" href="/leads">← Back to leads</Link>
           <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
             <ConnectionStatus />
+            <InstallPwaButton />
             <LogoutButton variant="header" />
           </div>
         </div>

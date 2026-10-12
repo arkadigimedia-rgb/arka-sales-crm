@@ -4,6 +4,7 @@ import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { users } from "@/server/schema";
 import { ConnectionStatus } from "@/components/connection-status";
+import { InstallPwaButton } from "@/components/install-pwa-button";
 import { LogoutButton } from "@/components/logout-button";
 import { NewLeadForm } from "@/components/new-lead-form";
 
@@ -37,6 +38,7 @@ export default async function NewLeadPage() {
         </Link>
         <div style={{ display: "flex", gap: "10px", alignItems: "center" }}>
           <ConnectionStatus />
+          <InstallPwaButton />
           <LogoutButton variant="header" />
         </div>
       </div>
