@@ -17,6 +17,7 @@
     "demo:seed": "tsx src/server/demo-fast.ts",
     "demo:reset": "tsx src/server/demo-data.ts reset",
     "build:exe": "powershell -ExecutionPolicy Bypass -File desktop-app/build.ps1",
+    "build:apk": "powershell -ExecutionPolicy Bypass -File android-app/build-apk.ps1",
     "test": "vitest run"
   },
   "dependencies": {

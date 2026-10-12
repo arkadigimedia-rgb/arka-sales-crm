@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">ARKA Sales CRM</string>
+    <string name="offline_title">No Internet Connection</string>
+    <string name="offline_msg">Please check your network and tap Retry to reconnect.</string>
+    <string name="retry">Retry</string>
+</resources>
