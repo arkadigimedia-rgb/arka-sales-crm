@@ -16,6 +16,7 @@
     "seed": "tsx src/server/seed-users.ts",
     "demo:seed": "tsx src/server/demo-fast.ts",
     "demo:reset": "tsx src/server/demo-data.ts reset",
+    "build:exe": "powershell -ExecutionPolicy Bypass -File desktop-app/build.ps1",
     "test": "vitest run"
   },
   "dependencies": {
