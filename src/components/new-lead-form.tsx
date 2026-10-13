@@ -69,9 +69,20 @@ export function NewLeadForm({
     if (!payload.assigneeId) {
       payload.assigneeId = currentUserId;
     }
-    if (!payload.source) {
-      payload.source = source || "Meta Lead";
-    }
+    const rawSource = payload.source || source || "Meta Lead";
+    const todayStr = new Date().toLocaleDateString("en-IN", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    });
+    payload.source = rawSource.startsWith("Sheet:")
+      ? rawSource
+      : rawSource.startsWith("Single Lead")
+      ? rawSource
+      : `Single Lead (${rawSource})`;
+
+    const existingNotes = payload.notes ? `${payload.notes}\n\n` : "";
+    payload.notes = `${existingNotes}Added as single lead on ${todayStr}.`;
 
     setSaving(true);
     try {

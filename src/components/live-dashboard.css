@@ -1,0 +1,465 @@
+/* Live Dashboard Styles */
+.calls-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+  margin: 16px 0 28px;
+}
+
+.call-card {
+  background: #ffffff;
+  border: 1px solid var(--line, #e2e7e4);
+  border-radius: 12px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.call-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(16, 39, 31, 0.06);
+}
+
+.call-card.highlight {
+  background: linear-gradient(135deg, #10271f 0%, #16634b 100%);
+  color: #ffffff;
+  border-color: #10271f;
+}
+
+.call-card.highlight .card-top-tag {
+  color: #e2c48d;
+}
+
+.call-card.highlight .card-big-num {
+  color: #ffffff;
+}
+
+.call-card.highlight .card-meta span {
+  color: #dce7e2;
+}
+
+.card-top-tag {
+  font-size: 0.68rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+  color: var(--muted, #6d7b76);
+  margin-bottom: 8px;
+}
+
+.card-big-num {
+  font-family: 'Manrope', sans-serif;
+  font-weight: 800;
+  font-size: 2.3rem;
+  line-height: 1.1;
+  color: var(--ink, #17211f);
+  margin-bottom: 8px;
+}
+
+.card-meta {
+  font-size: 0.78rem;
+  color: var(--muted, #6d7b76);
+  margin-bottom: 12px;
+}
+
+.card-meta b {
+  color: inherit;
+  font-weight: 700;
+}
+
+.call-outcomes-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+.outcome-pill {
+  background: rgba(255, 255, 255, 0.18);
+  backdrop-filter: blur(4px);
+  color: #ffffff;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.no-calls-pill {
+  font-size: 0.73rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+}
+
+.call-card-sub {
+  margin-top: auto;
+  padding-top: 10px;
+}
+
+/* Weekly Mini Chart */
+.week-mini-bars {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  height: 64px;
+  margin-top: auto;
+  padding-top: 10px;
+  align-items: flex-end;
+}
+
+.day-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 3px;
+  height: 100%;
+}
+
+.day-bar-track {
+  width: 14px;
+  height: 38px;
+  background: #edf1ef;
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+
+.day-bar-fill {
+  width: 100%;
+  background: #16634b;
+  border-radius: 4px;
+  transition: height 0.3s ease;
+  min-height: 2px;
+}
+
+.day-label {
+  font-size: 0.62rem;
+  color: var(--muted, #6d7b76);
+  font-weight: 600;
+}
+
+.day-val {
+  font-size: 0.62rem;
+  font-weight: 700;
+  color: #16634b;
+}
+
+/* Dashboard Two Column Grid */
+.dashboard-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Sheet-Wise Lead Inventory */
+.sheet-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.sheet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 14px;
+  background: #fbfcfb;
+  border: 1px solid var(--line, #e2e7e4);
+  border-radius: 9px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.15s ease;
+}
+
+.sheet-row:hover {
+  background: #ffffff;
+  border-color: #16634b;
+  box-shadow: 0 3px 12px rgba(22, 99, 75, 0.08);
+}
+
+.sheet-row-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sheet-icon {
+  font-size: 1.3rem;
+  width: 34px;
+  height: 34px;
+  background: #edf4f1;
+  border-radius: 8px;
+  display: grid;
+  place-items: center;
+}
+
+.sheet-row-info b {
+  display: block;
+  font-size: 0.86rem;
+  color: var(--ink, #17211f);
+}
+
+.sheet-row-info small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted, #6d7b76);
+  margin-top: 2px;
+}
+
+.sheet-row-count {
+  text-align: right;
+}
+
+.sheet-row-count b {
+  display: block;
+  font-family: 'Manrope', sans-serif;
+  font-size: 1.15rem;
+  color: #16634b;
+}
+
+.sheet-row-count span {
+  font-size: 0.68rem;
+  color: var(--muted, #6d7b76);
+}
+
+/* Pipeline Bars */
+.pipeline-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.pipe-row {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pipe-row:hover .pipe-fill {
+  background: #10271f;
+}
+
+.pipe-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.77rem;
+  margin-bottom: 4px;
+}
+
+.pipe-label span {
+  color: #3b4e47;
+  font-weight: 500;
+}
+
+.pipe-label b {
+  color: #16634b;
+  font-weight: 700;
+}
+
+.pipe-track {
+  height: 6px;
+  background: #edf1ef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pipe-fill {
+  height: 100%;
+  background: #16634b;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+/* Live Recent Calls Feed */
+.recent-calls-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 14px;
+  max-height: 480px;
+  overflow-y: auto;
+}
+
+.call-feed-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  padding: 13px 15px;
+  background: #fbfcfb;
+  border: 1px solid var(--line, #e2e7e4);
+  border-radius: 9px;
+}
+
+.call-feed-main {
+  flex: 1;
+}
+
+.lead-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.lead-link b {
+  font-size: 0.88rem;
+  color: #10271f;
+}
+
+.lead-link:hover b {
+  color: #16634b;
+  text-decoration: underline;
+}
+
+.call-feed-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 6px 0 4px;
+  font-size: 0.72rem;
+}
+
+.outcome-tag {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: #edf4f1;
+  color: #16634b;
+  text-transform: uppercase;
+}
+
+.outcome-tag.spoke {
+  background: #e2f5ec;
+  color: #0d6945;
+}
+
+.outcome-tag.busy, .outcome-tag.no_answer {
+  background: #fdf3e7;
+  color: #ae5628;
+}
+
+.outcome-tag.not_reachable, .outcome-tag.wrong_number {
+  background: #fde8e5;
+  color: #b93822;
+}
+
+.duration-tag, .caller-tag, .time-tag {
+  color: var(--muted, #6d7b76);
+}
+
+.call-notes {
+  margin: 4px 0 0;
+  font-size: 0.74rem;
+  color: #556761;
+  font-style: italic;
+}
+
+/* Meetings list */
+.meetings-list {
+  margin-top: 14px;
+}
+
+.meeting-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 11px 0;
+  border-bottom: 1px solid var(--line, #e2e7e4);
+}
+
+.meeting-row:last-child {
+  border-bottom: none;
+}
+
+.meeting-info {
+  flex: 1;
+}
+
+.meeting-info b {
+  display: block;
+  font-size: 0.82rem;
+}
+
+.meeting-info small {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--muted, #6d7b76);
+  margin-top: 2px;
+}
+
+.status-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 7px;
+  border-radius: 6px;
+  background: #edf4f1;
+  color: #16634b;
+}
+
+/* All time outcomes breakdown */
+.outcomes-breakdown {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  margin-top: 10px;
+}
+
+.outcome-stat-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.75rem;
+}
+
+.outcome-stat-row span {
+  width: 130px;
+  color: #4b5d56;
+}
+
+.outcome-stat-row i {
+  flex: 1;
+  height: 6px;
+  background: #edf1ef;
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.outcome-stat-row i b {
+  height: 100%;
+  display: block;
+  background: #16634b;
+  border-radius: 3px;
+}
+
+.outcome-stat-row em {
+  font-style: normal;
+  font-weight: 700;
+  color: #16634b;
+  width: 32px;
+  text-align: right;
+}
+
+/* Responsive adjustments */
+@media (max-width: 1100px) {
+  .calls-metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-two-col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .calls-metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .week-mini-bars {
+    height: 52px;
+  }
+}

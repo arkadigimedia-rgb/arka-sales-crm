@@ -4,7 +4,7 @@ import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 
 export interface RealtimeEvent {
-  type: "lead:updated" | "call:logged" | "followup:completed" | "leads:imported" | "ping" | "connected";
+  type: "lead:updated" | "lead:created" | "call:logged" | "followup:completed" | "leads:imported" | "ping" | "connected";
   payload?: Record<string, unknown>;
   timestamp: string;
 }

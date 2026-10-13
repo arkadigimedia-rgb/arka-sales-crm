@@ -21,7 +21,23 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
     db.select().from(proposals).where(eq(proposals.leadId, id)).orderBy(desc(proposals.createdAt)),
     db.select().from(comments).where(eq(comments.leadId, id)).orderBy(desc(comments.createdAt)),
   ]);
-  const contact = [["Contact", lead.contactName], ["Phone", lead.phone], ["Email", lead.email], ["Website", lead.website], ["Location", lead.location], ["Source", lead.source], ["Service interest", lead.serviceInterest]].filter(([, value]) => value);
+  const uploadDateStr = new Date(lead.createdAt).toLocaleDateString("en-IN", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+  const contact = [
+    ["Contact", lead.contactName],
+    ["Phone", lead.phone],
+    ["Email", lead.email],
+    ["Website", lead.website],
+    ["Location", lead.location],
+    ["Sheet / Source", lead.source || "Direct Entry"],
+    ["Date Uploaded / Added", uploadDateStr],
+    ["Service interest", lead.serviceInterest],
+  ].filter(([, value]) => value);
   const lastCall = callRows[0];
   const initials = user.name.split(" ").map(n => n[0]).join("").slice(0, 2).toUpperCase() || "U";
   return (

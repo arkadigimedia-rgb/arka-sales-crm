@@ -1,34 +1,132 @@
 import Link from "next/link";
-import { and, desc, eq, isNull, or } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { leads } from "@/server/schema";
 import { ConnectionStatus } from "@/components/connection-status";
 import { InstallPwaButton } from "@/components/install-pwa-button";
 import { LogoutButton } from "@/components/logout-button";
+import "./leads.css";
 
-export default async function LeadsPage({ searchParams }: { searchParams: Promise<{ status?: string; attention?: string }> }) {
+function formatLeadDate(dateVal: Date | string | null): string {
+  if (!dateVal) return "";
+  try {
+    const d = new Date(dateVal);
+    const today = new Date();
+    const isToday =
+      d.getDate() === today.getDate() &&
+      d.getMonth() === today.getMonth() &&
+      d.getFullYear() === today.getFullYear();
+
+    const timeStr = d.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" });
+    const dateStr = d.toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" });
+
+    return isToday ? `Today, ${timeStr}` : `${dateStr}`;
+  } catch {
+    return "";
+  }
+}
+
+export default async function LeadsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{
+    status?: string;
+    attention?: string;
+    source?: string;
+    q?: string;
+  }>;
+}) {
   const user = await pageActor();
   const filters = await searchParams;
-  const where = and(
-    user.role === "SALESPERSON" ? or(eq(leads.assigneeId, user.id), isNull(leads.assigneeId)) : undefined,
-    filters.status ? eq(leads.status, filters.status as typeof leads.status.enumValues[number]) : undefined,
-    filters.attention === "no-next-action" ? isNull(leads.nextAction) : undefined
-  );
-  const rows = await db.select().from(leads).where(where).orderBy(desc(leads.score), desc(leads.updatedAt));
-  const initials = user.name.split(" ").map((n) => n[0]).join("").slice(0, 2).toUpperCase() || "U";
+
+  const baseUserScope =
+    user.role === "SALESPERSON"
+      ? or(eq(leads.assigneeId, user.id), isNull(leads.assigneeId))
+      : undefined;
+
+  // 1. Fetch source counts to build sheet-wise navigation
+  const sourceGroups = await db
+    .select({
+      source: sql<string>`coalesce(${leads.source}, 'Unassigned')`,
+      count: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(baseUserScope)
+    .groupBy(leads.source)
+    .orderBy(desc(sql<number>`count(*)`));
+
+  const totalLeadsCount = sourceGroups.reduce((acc, s) => acc + Number(s.count), 0);
+
+  // 2. Build where filter
+  const conditions = [baseUserScope];
+
+  if (filters.status) {
+    conditions.push(eq(leads.status, filters.status as typeof leads.status.enumValues[number]));
+  }
+  if (filters.attention === "no-next-action") {
+    conditions.push(isNull(leads.nextAction));
+  }
+  if (filters.source) {
+    if (filters.source === "Unassigned") {
+      conditions.push(isNull(leads.source));
+    } else {
+      conditions.push(eq(leads.source, filters.source));
+    }
+  }
+  if (filters.q) {
+    const query = `%${filters.q}%`;
+    conditions.push(
+      or(
+        ilike(leads.companyName, query),
+        ilike(leads.contactName, query),
+        ilike(leads.phone, query),
+        ilike(leads.email, query),
+        ilike(leads.location, query)
+      )
+    );
+  }
+
+  const where = and(...conditions);
+  const rows = await db
+    .select()
+    .from(leads)
+    .where(where)
+    .orderBy(desc(leads.score), desc(leads.updatedAt));
+
+  const initials =
+    user.name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "U";
+
+  const isFilteringBySource = Boolean(filters.source);
 
   return (
     <div className="app-shell">
+      {/* Sidebar */}
       <aside className="sidebar">
         <div className="brand">
           <span className="brand-mark">A</span>ARKA
         </div>
         <p className="workspace">SALES COMMAND CENTER</p>
-        <Link className="nav-item" href="/dashboard">▦ Dashboard</Link>
-        <Link className="nav-item selected" href="/leads">◫ Leads <em>{rows.length}</em></Link>
-        <Link className="nav-item" href="/leads/new">✚ Add Lead</Link>
-        <Link className="nav-item" href="/import">⇪ Upload Excel</Link>
+        <Link className="nav-item" href="/dashboard">
+          ▦ Dashboard
+        </Link>
+        <Link className="nav-item selected" href="/leads">
+          ◫ Leads <em>{totalLeadsCount}</em>
+        </Link>
+        <Link className="nav-item" href="/leads/new">
+          ✚ Add Lead
+        </Link>
+        <Link className="nav-item" href="/import">
+          ⇪ Upload Excel
+        </Link>
+        <Link className="nav-item" href="/analytics">
+          📊 Analytics
+        </Link>
         <div className="sidebar-bottom">
           <div className="profile">
             <span>{initials}</span>
@@ -40,66 +138,263 @@ export default async function LeadsPage({ searchParams }: { searchParams: Promis
           <LogoutButton variant="sidebar" />
         </div>
       </aside>
+
+      {/* Main Workspace */}
       <main className="workspace-main">
         <header>
           <div>
-            <p className="eyebrow">BUSINESS LEADS</p>
+            <p className="eyebrow">BUSINESS LEADS & WORKSHEETS</p>
             <h1>Lead workspace</h1>
           </div>
           <div className="header-actions">
             <ConnectionStatus />
             <InstallPwaButton />
-            <Link className="link" href="/dashboard">Dashboard</Link>
-            <Link className="primary" href="/leads/new">+ Add Lead</Link>
-            <Link className="link" href="/import">Upload Excel</Link>
+            <Link className="link" href="/dashboard">
+              Dashboard
+            </Link>
+            <Link className="primary" href="/leads/new">
+              + Add Lead
+            </Link>
+            <Link className="link" href="/import">
+              Upload Excel
+            </Link>
             <LogoutButton variant="header" />
           </div>
         </header>
+
+        {/* SHEET-WISE FILTER TABS (Solves mixing up of leads!) */}
+        <section className="sheet-selector-panel">
+          <div className="sheet-selector-header">
+            <div>
+              <span className="sheet-selector-title">SHEET-WISE FILTER</span>
+              <p className="sheet-selector-subtitle">
+                Select a sheet below to view and work on leads sheet-by-sheet:
+              </p>
+            </div>
+            {isFilteringBySource && (
+              <Link href="/leads" className="sheet-clear-link">
+                ✕ Clear Sheet Filter
+              </Link>
+            )}
+          </div>
+
+          <div className="sheet-chips-scroll">
+            {/* All Leads Pill */}
+            <Link
+              href={filters.status ? `/leads?status=${filters.status}` : "/leads"}
+              className={`sheet-chip ${!filters.source ? "active" : ""}`}
+            >
+              <span className="chip-icon">🗂</span>
+              <span className="chip-name">All Sheets & Sources</span>
+              <span className="chip-count">{totalLeadsCount}</span>
+            </Link>
+
+            {/* Individual Sheet / Source Pills */}
+            {sourceGroups.map((group) => {
+              const isSelected = filters.source === group.source;
+              const isSheet = group.source.startsWith("Sheet:");
+              const displayName = group.source.replace("Sheet: ", "");
+
+              return (
+                <Link
+                  key={group.source}
+                  href={`/leads?source=${encodeURIComponent(group.source)}${
+                    filters.status ? `&status=${filters.status}` : ""
+                  }`}
+                  className={`sheet-chip ${isSelected ? "active" : ""}`}
+                >
+                  <span className="chip-icon">{isSheet ? "📁" : "👤"}</span>
+                  <span className="chip-name">{displayName}</span>
+                  <span className="chip-count">{group.count}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+
+        {/* Main Leads Table Panel */}
         <section className="panel full">
           <div className="list-top">
             <div>
-              <h2>{rows.length} leads{filters.status ? ` in ${filters.status.replaceAll("_", " ")}` : filters.attention ? " requiring attention" : ""}</h2>
-              <p>Assigned to the sales team and ready for action.</p>
+              <h2>
+                {rows.length} {rows.length === 1 ? "lead" : "leads"}
+                {filters.source ? ` in ${filters.source}` : ""}
+                {filters.status ? ` (${filters.status.replaceAll("_", " ")})` : ""}
+                {filters.attention ? " requiring attention" : ""}
+              </h2>
+              <p>
+                {filters.source
+                  ? `Filtered sheet view: showing only leads from ${filters.source}`
+                  : "All leads assigned to sales team and ready for action."}
+              </p>
             </div>
           </div>
+
+          {/* Sub Filters */}
           <div className="filters">
-            <Link className="link" href="/leads">All leads</Link>
-            <Link className="link" href="/leads?attention=no-next-action">Needs action</Link>
-            <span>Prioritised by score — open a lead to view its complete record.</span>
+            <Link
+              className={`link ${!filters.status && !filters.attention ? "active-filter" : ""}`}
+              href={filters.source ? `/leads?source=${encodeURIComponent(filters.source)}` : "/leads"}
+            >
+              All in view
+            </Link>
+            <Link
+              className={`link ${filters.attention === "no-next-action" ? "active-filter" : ""}`}
+              href={`/leads?attention=no-next-action${
+                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
+              }`}
+            >
+              Needs action
+            </Link>
+            <Link
+              className={`link ${filters.status === "NEW" ? "active-filter" : ""}`}
+              href={`/leads?status=NEW${
+                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
+              }`}
+            >
+              New
+            </Link>
+            <Link
+              className={`link ${filters.status === "CONTACTED" ? "active-filter" : ""}`}
+              href={`/leads?status=CONTACTED${
+                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
+              }`}
+            >
+              Contacted
+            </Link>
+            <Link
+              className={`link ${filters.status === "INTERESTED" ? "active-filter" : ""}`}
+              href={`/leads?status=INTERESTED${
+                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
+              }`}
+            >
+              Interested
+            </Link>
+            <span>Prioritised by score — open a lead to log calls or view details.</span>
           </div>
+
+          {/* Table */}
           <div className="table-scroll">
-            <table>
+            <table className="leads-table">
               <thead>
                 <tr>
-                  <th>LEAD</th>
-                  <th>CONTACT</th>
+                  <th style={{ minWidth: "260px" }}>BUSINESS LEAD & SHEET</th>
+                  <th style={{ minWidth: "200px" }}>CONTACT</th>
                   <th>STAGE</th>
                   <th>PRIORITY</th>
-                  <th>NEXT ACTION</th>
+                  <th style={{ minWidth: "180px" }}>NEXT ACTION</th>
                   <th></th>
                 </tr>
               </thead>
               <tbody>
-                {rows.map((lead) => (
-                  <tr key={lead.id}>
-                    <td>
-                      <b>{lead.companyName}</b>
-                      <small>{lead.location || "Location not provided"} · Score {lead.score}</small>
-                    </td>
-                    <td>
-                      <b>{lead.contactName}</b>
-                      <small>{lead.phone || lead.email || "No contact method"}</small>
-                    </td>
-                    <td><span className="stage">{lead.status.replaceAll("_", " ")}</span></td>
-                    <td><span className={`priority ${lead.priority.toLowerCase()}`}>{lead.priority}</span></td>
-                    <td>{lead.nextAction || "Needs a next action"}</td>
-                    <td><Link className="link" href={`/leads/${lead.id}`}>Open →</Link></td>
-                  </tr>
-                ))}
+                {rows.map((lead) => {
+                  const isSheet = lead.source?.startsWith("Sheet:");
+                  const uploadDateStr = formatLeadDate(lead.createdAt);
+
+                  return (
+                    <tr key={lead.id} className="lead-table-row">
+                      {/* Lead Name, Sheet Tag, Upload Date */}
+                      <td>
+                        <div className="lead-title-row">
+                          <b className="lead-company-name">{lead.companyName}</b>
+                          {lead.source && (
+                            <span
+                              className={`source-badge ${isSheet ? "sheet-source" : "single-source"}`}
+                              title={`Source: ${lead.source}`}
+                            >
+                              {isSheet ? "📁 " : "👤 "}
+                              {lead.source.replace("Sheet: ", "")}
+                            </span>
+                          )}
+                        </div>
+                        <div className="lead-meta-row">
+                          <span className="lead-location">
+                            {lead.location || "Location not provided"}
+                          </span>
+                          <span className="lead-dot">·</span>
+                          <span className="lead-score">Score {lead.score}</span>
+                          {uploadDateStr && (
+                            <>
+                              <span className="lead-dot">·</span>
+                              <span className="lead-date-badge" title={`Created / Uploaded on ${uploadDateStr}`}>
+                                📅 {uploadDateStr}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                        {lead.serviceInterest && (
+                          <div className="lead-service-tag">
+                            🎯 {lead.serviceInterest}
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Contact Info */}
+                      <td>
+                        <b>{lead.contactName}</b>
+                        <small>{lead.phone || lead.email || "No contact method"}</small>
+                        {lead.phone && (
+                          <div className="contact-quick-links">
+                            <a href={`tel:${lead.phone}`} className="quick-action-link" title="Call">
+                              📞 Call
+                            </a>
+                            <a
+                              href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, "")}`}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="quick-action-link wa"
+                              title="WhatsApp"
+                            >
+                              💬 WhatsApp
+                            </a>
+                          </div>
+                        )}
+                      </td>
+
+                      {/* Stage */}
+                      <td>
+                        <span className="stage">{lead.status.replaceAll("_", " ")}</span>
+                      </td>
+
+                      {/* Priority */}
+                      <td>
+                        <span className={`priority ${lead.priority.toLowerCase()}`}>
+                          {lead.priority}
+                        </span>
+                      </td>
+
+                      {/* Next Action */}
+                      <td>
+                        <span className={lead.nextAction ? "has-next-action" : "no-next-action"}>
+                          {lead.nextAction || "Needs a next action"}
+                        </span>
+                      </td>
+
+                      {/* Open Action */}
+                      <td>
+                        <Link className="open-lead-btn" href={`/leads/${lead.id}`}>
+                          Open →
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
-          {rows.length === 0 && <p className="empty-note">No leads match this view.</p>}
+
+          {rows.length === 0 && (
+            <div className="empty-leads-view">
+              <p className="empty-note">
+                No leads found matching this view.{" "}
+                {filters.source && (
+                  <Link href="/leads" className="link">
+                    View all sheets instead
+                  </Link>
+                )}
+              </p>
+            </div>
+          )}
         </section>
       </main>
     </div>

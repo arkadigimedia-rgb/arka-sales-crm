@@ -1,7 +1,14 @@
 import { NextResponse } from "next/server";
-import { requireManager, actor } from "@/server/auth";
-import { demoDashboard } from "@/server/demo-dashboard";
+import { actor } from "@/server/auth";
+import { getDashboard } from "@/server/dashboard";
+import { errorResponse } from "@/server/http";
+
 export async function GET() {
-  await actor();
-  return NextResponse.json(await demoDashboard());
+  try {
+    const user = await actor();
+    const data = await getDashboard(user);
+    return NextResponse.json(data);
+  } catch (error) {
+    return errorResponse(error);
+  }
 }
