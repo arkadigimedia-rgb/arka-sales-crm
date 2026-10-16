@@ -1,7 +1,19 @@
 "use client";
+
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
-const options = [["SPOKE", "Spoke"], ["NO_ANSWER", "No answer"], ["BUSY", "Busy"], ["CALL_BACK_LATER", "Call back"], ["WRONG_NUMBER", "Wrong number"], ["NOT_REACHABLE", "Not reachable"], ["OTHER", "Other"]] as const;
+import "./call-outcome.css";
+
+const options = [
+  ["SPOKE", "Spoke"],
+  ["NO_ANSWER", "No answer"],
+  ["BUSY", "Busy"],
+  ["CALL_BACK_LATER", "Call back"],
+  ["WRONG_NUMBER", "Wrong number"],
+  ["NOT_REACHABLE", "Not reachable"],
+  ["OTHER", "Other"],
+] as const;
+
 const durationPresets = [
   [15, "15s"],
   [30, "30s"],
@@ -23,51 +35,134 @@ function formatDuration(sec: number): string {
   return `${mins}m ${remSec}s (${sec}s)`;
 }
 
-export function CallOutcomeForm({ leadId }: { leadId: string }) {
+export function CallOutcomeForm({
+  leadId,
+  initialNextLeadId,
+  initialNextLeadCompany,
+  sheetSource,
+}: {
+  leadId: string;
+  initialNextLeadId?: string | null;
+  initialNextLeadCompany?: string | null;
+  sheetSource?: string | null;
+}) {
   const [outcome, setOutcome] = useState<string>("");
   const [duration, setDuration] = useState<string>("");
   const [message, setMessage] = useState("");
   const [saving, setSaving] = useState(false);
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [nextTargetId, setNextTargetId] = useState<string | null>(initialNextLeadId || null);
+  const [nextTargetCompany, setNextTargetCompany] = useState<string | null>(
+    initialNextLeadCompany || null
+  );
+
   const router = useRouter();
   const spoke = outcome === "SPOKE";
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const chosenOutcome = outcome || "OTHER";
-    const form = new FormData(event.currentTarget);
-    const payload = Object.fromEntries(form) as Record<string, string | null>;
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    const payload = Object.fromEntries(formData) as Record<string, string | null>;
     payload.outcome = chosenOutcome;
 
-    for (const key of ["leadResponse", "interestLevel", "salespersonAction", "nextAction", "nextFollowUpAt", "notes", "duration"]) {
-      if (!payload[key] || (typeof payload[key] === "string" && !payload[key].trim())) {
+    for (const key of [
+      "leadResponse",
+      "interestLevel",
+      "salespersonAction",
+      "nextAction",
+      "nextFollowUpAt",
+      "notes",
+      "duration",
+    ]) {
+      if (!payload[key] || (typeof payload[key] === "string" && !payload[key]!.trim())) {
         payload[key] = null;
       }
     }
 
     setSaving(true);
-    const response = await fetch(`/api/leads/${leadId}/calls`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload),
-    });
-    const body = await response.json();
-    setSaving(false);
+    setMessage("");
 
-    if (!response.ok) {
-      return setMessage(body.error || "Could not save call attempt.");
+    try {
+      const response = await fetch(`/api/leads/${leadId}/calls`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const body = await response.json();
+      setSaving(false);
+
+      if (!response.ok) {
+        return setMessage(body.error || "Could not save call attempt.");
+      }
+
+      const nextId = body.nextLeadId || nextTargetId;
+      const nextCompany = body.nextLeadCompany || nextTargetCompany;
+      const sheet = body.sheetSource || sheetSource;
+
+      if (autoAdvance) {
+        if (nextId) {
+          setMessage(`✓ Call saved! Loading next lead: ${nextCompany || "Next pending lead"}...`);
+          setTimeout(() => {
+            router.push(`/leads/${nextId}`);
+          }, 600);
+        } else {
+          setMessage(
+            "✓ Call saved! All pending leads in this sheet have been contacted. Returning to leads list..."
+          );
+          setTimeout(() => {
+            const target = sheet ? `/leads?source=${encodeURIComponent(sheet)}` : "/leads";
+            router.push(target);
+          }, 1000);
+        }
+      } else {
+        setMessage("✓ Call attempt recorded. Lead moved to Contacted.");
+        router.refresh();
+        form.reset();
+        setOutcome("");
+        setDuration("");
+        if (body.nextLeadId) {
+          setNextTargetId(body.nextLeadId);
+          setNextTargetCompany(body.nextLeadCompany);
+        }
+      }
+    } catch {
+      setSaving(false);
+      setMessage("Network error. Please try again.");
     }
-
-    setMessage("Call attempt saved.");
-    router.refresh();
-    event.currentTarget.reset();
-    setOutcome("");
-    setDuration("");
   }
 
   return (
     <form className="call-form" onSubmit={submit}>
-      <h3>Record call outcome</h3>
-      <p>A call only counts as contact after you save its actual result.</p>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+        <h3>Record call outcome</h3>
+        <label
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "6px",
+            fontSize: "0.72rem",
+            color: "#16634b",
+            cursor: "pointer",
+            fontWeight: 600,
+            margin: 0,
+          }}
+          title="When enabled, saving a call automatically loads the next pending lead to call"
+        >
+          <input
+            type="checkbox"
+            checked={autoAdvance}
+            onChange={(e) => setAutoAdvance(e.target.checked)}
+            style={{ width: "auto", margin: 0 }}
+          />
+          Auto-load next lead
+        </label>
+      </div>
+
+      <p>A call attempt moves this lead to Contacted so you can focus on remaining uncalled leads.</p>
+
       <div className="outcome-buttons">
         {options.map(([value, title]) => (
           <button
@@ -136,11 +231,12 @@ export function CallOutcomeForm({ leadId }: { leadId: string }) {
           placeholder="Or type exact seconds (e.g. 45)"
         />
       </div>
+
       {spoke && (
         <>
           <label>
             Lead response (optional)
-            <input name="leadResponse" placeholder="e.g. Interested in demo" />
+            <input name="leadResponse" placeholder="e.g. Interested in demo / pitched services" />
           </label>
           <label>
             Interest level (optional)
@@ -153,10 +249,11 @@ export function CallOutcomeForm({ leadId }: { leadId: string }) {
           </label>
           <label>
             What you did (optional)
-            <input name="salespersonAction" placeholder="e.g. Shared curriculum brochure" />
+            <input name="salespersonAction" placeholder="e.g. Shared curriculum brochure / pricing" />
           </label>
         </>
       )}
+
       <label>
         Next action (optional)
         <input name="nextAction" placeholder="e.g. Follow up on Tuesday" />
@@ -169,10 +266,40 @@ export function CallOutcomeForm({ leadId }: { leadId: string }) {
         Notes (optional)
         <textarea name="notes" placeholder="Call notes or details (optional)" />
       </label>
-      <button className="primary" disabled={saving}>
-        {saving ? "Saving…" : "Save call attempt"}
-      </button>
-      {message && <span className="form-message">{message}</span>}
+
+      <div style={{ display: "flex", gap: "8px", alignItems: "center", marginTop: "12px" }}>
+        <button className="primary" disabled={saving} style={{ flex: 1 }}>
+          {saving ? "Saving…" : "Save call attempt & load next"}
+        </button>
+
+        {nextTargetId && (
+          <button
+            type="button"
+            className="button ghost small"
+            onClick={() => router.push(`/leads/${nextTargetId}`)}
+            title={`Skip to ${nextTargetCompany || "next lead"}`}
+            style={{ whiteSpace: "nowrap" }}
+          >
+            Skip →
+          </button>
+        )}
+      </div>
+
+      {message && (
+        <div
+          className="form-message"
+          style={{
+            background: message.startsWith("✓") ? "#edf4f1" : "#fde8e5",
+            color: message.startsWith("✓") ? "#16634b" : "#b93822",
+            padding: "8px 10px",
+            borderRadius: "6px",
+            marginTop: "10px",
+            fontWeight: 600,
+          }}
+        >
+          {message}
+        </div>
+      )}
     </form>
   );
 }

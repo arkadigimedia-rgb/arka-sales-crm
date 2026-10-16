@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, or } from "drizzle-orm";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { actor, canAccessLead } from "@/server/auth";
@@ -6,7 +6,16 @@ import { db } from "@/server/db";
 import { activities, calls, followUps, leads } from "@/server/schema";
 import { errorResponse } from "@/server/http";
 import { broadcaster } from "@/server/events";
-const outcomes = ["SPOKE", "NO_ANSWER", "BUSY", "NOT_REACHABLE", "WRONG_NUMBER", "CALL_BACK_LATER", "OTHER"] as const;
+
+const outcomes = [
+  "SPOKE",
+  "NO_ANSWER",
+  "BUSY",
+  "CALL_BACK_LATER",
+  "WRONG_NUMBER",
+  "NOT_REACHABLE",
+  "OTHER",
+] as const;
 
 const emptyToNull = (val: unknown) => (val === "" || val === null || val === undefined ? null : val);
 
@@ -31,8 +40,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
     const data = input.parse(await request.json());
     const outcome = data.outcome || "OTHER";
-    const spoke = outcome === "SPOKE";
-    const newStatus = spoke && ["NEW", "ASSIGNED"].includes(lead.status) ? "CONTACTED" : lead.status;
+
+    // Any call attempt moves the lead out of NEW/ASSIGNED into CONTACTED (or INTERESTED if marked interested)
+    const isInterested = data.interestLevel === "Interested" || data.interestLevel === "Qualified";
+    const isUncontacted = ["NEW", "ASSIGNED"].includes(lead.status);
+    const newStatus = isInterested
+      ? "INTERESTED"
+      : isUncontacted
+      ? "CONTACTED"
+      : lead.status;
 
     await db.transaction(async (tx) => {
       await tx.insert(calls).values({
@@ -49,15 +65,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         notes: data.notes ?? null,
       });
 
-      await tx.update(leads).set({
-        status: newStatus,
-        lastContactAt: spoke ? new Date() : lead.lastContactAt,
-        leadResponse: data.leadResponse ?? lead.leadResponse,
-        salespersonAction: data.salespersonAction ?? lead.salespersonAction,
-        nextAction: data.nextAction ?? lead.nextAction,
-        nextFollowUpAt: data.nextFollowUpAt ?? lead.nextFollowUpAt,
-        updatedAt: new Date(),
-      }).where(eq(leads.id, id));
+      await tx
+        .update(leads)
+        .set({
+          status: newStatus,
+          lastContactAt: new Date(),
+          leadResponse: data.leadResponse ?? lead.leadResponse,
+          salespersonAction: data.salespersonAction ?? lead.salespersonAction,
+          nextAction: data.nextAction ?? lead.nextAction,
+          nextFollowUpAt: data.nextFollowUpAt ?? lead.nextFollowUpAt,
+          updatedAt: new Date(),
+        })
+        .where(eq(leads.id, id));
 
       if (data.nextFollowUpAt) {
         await tx.insert(followUps).values({
@@ -77,9 +96,45 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       });
     });
 
-    broadcaster.broadcast("call:logged", { leadId: id, outcome, callerId: user.id, occurredAt: new Date().toISOString() });
-    broadcaster.broadcast("lead:updated", { id, status: newStatus, updatedAt: new Date().toISOString() });
-    return NextResponse.json({ ok: true });
+    broadcaster.broadcast("call:logged", {
+      leadId: id,
+      outcome,
+      callerId: user.id,
+      occurredAt: new Date().toISOString(),
+    });
+    broadcaster.broadcast("lead:updated", {
+      id,
+      status: newStatus,
+      updatedAt: new Date().toISOString(),
+    });
+
+    // Find the next pending lead to call in the same sheet (or globally for this user)
+    const scoped =
+      user.role === "SALESPERSON"
+        ? or(eq(leads.assigneeId, user.id), isNull(leads.assigneeId))
+        : undefined;
+
+    const [nextLead] = await db
+      .select({ id: leads.id, companyName: leads.companyName })
+      .from(leads)
+      .where(
+        and(
+          scoped,
+          lead.source ? eq(leads.source, lead.source) : undefined,
+          ne(leads.id, id),
+          inArray(leads.status, ["NEW", "ASSIGNED"])
+        )
+      )
+      .orderBy(desc(leads.score), desc(leads.createdAt))
+      .limit(1);
+
+    return NextResponse.json({
+      ok: true,
+      newStatus,
+      nextLeadId: nextLead?.id || null,
+      nextLeadCompany: nextLead?.companyName || null,
+      sheetSource: lead.source || null,
+    });
   } catch (error) {
     return errorResponse(error);
   }

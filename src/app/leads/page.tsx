@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { pageActor } from "@/server/auth";
 import { db } from "@/server/db";
 import { leads } from "@/server/schema";
@@ -34,6 +34,7 @@ export default async function LeadsPage({
     status?: string;
     attention?: string;
     source?: string;
+    view?: string;
     q?: string;
   }>;
 }) {
@@ -45,7 +46,7 @@ export default async function LeadsPage({
       ? or(eq(leads.assigneeId, user.id), isNull(leads.assigneeId))
       : undefined;
 
-  // 1. Fetch source counts to build sheet-wise navigation
+  // 1. Fetch source counts to build sheet-wise selector
   const sourceGroups = await db
     .select({
       source: sql<string>`coalesce(${leads.source}, 'Unassigned')`,
@@ -58,22 +59,63 @@ export default async function LeadsPage({
 
   const totalLeadsCount = sourceGroups.reduce((acc, s) => acc + Number(s.count), 0);
 
-  // 2. Build where filter
-  const conditions = [baseUserScope];
-
-  if (filters.status) {
-    conditions.push(eq(leads.status, filters.status as typeof leads.status.enumValues[number]));
-  }
-  if (filters.attention === "no-next-action") {
-    conditions.push(isNull(leads.nextAction));
-  }
+  // 2. Determine base sheet conditions for calculating sub-tab counts
+  const sheetConditions = [baseUserScope];
   if (filters.source) {
     if (filters.source === "Unassigned") {
-      conditions.push(isNull(leads.source));
+      sheetConditions.push(isNull(leads.source));
     } else {
-      conditions.push(eq(leads.source, filters.source));
+      sheetConditions.push(eq(leads.source, filters.source));
     }
   }
+
+  const [tabCounts] = await db
+    .select({
+      pending: sql<number>`count(*) filter (where ${leads.status} in ('NEW', 'ASSIGNED'))`,
+      contacted: sql<number>`count(*) filter (where ${leads.status} = 'CONTACTED')`,
+      needsAction: sql<number>`count(*) filter (where ${leads.nextAction} is null and ${leads.status} not in ('WON', 'LOST'))`,
+      interested: sql<number>`count(*) filter (where ${leads.status} in ('INTERESTED', 'QUALIFIED'))`,
+      total: sql<number>`count(*)`,
+    })
+    .from(leads)
+    .where(and(...sheetConditions));
+
+  const pendingCount = Number(tabCounts?.pending ?? 0);
+  const contactedCount = Number(tabCounts?.contacted ?? 0);
+  const needsActionCount = Number(tabCounts?.needsAction ?? 0);
+  const interestedCount = Number(tabCounts?.interested ?? 0);
+  const currentSheetTotal = Number(tabCounts?.total ?? 0);
+
+  // 3. View Mode:
+  // - Default is "pending" (Uncalled queue: NEW + ASSIGNED) -> contacted leads VANISH from here!
+  // - "contacted": shows only contacted leads
+  // - "needs-action": shows leads without next action
+  // - "interested": shows interested leads
+  // - "all": complete history of all leads
+  const isContacted = filters.status === "CONTACTED";
+  const isInterested = filters.status === "INTERESTED";
+  const isNeedsAction = filters.attention === "no-next-action";
+  const isViewAll = filters.view === "all";
+  const isOtherStatus = Boolean(filters.status && !isContacted && !isInterested);
+  const isPending = !isContacted && !isInterested && !isNeedsAction && !isViewAll && !isOtherStatus;
+
+  // 4. Build query conditions
+  const conditions = [...sheetConditions];
+
+  if (isPending) {
+    // Only pending uncalled leads! Contacted leads vanish from this view!
+    conditions.push(inArray(leads.status, ["NEW", "ASSIGNED"]));
+  } else if (isContacted) {
+    conditions.push(eq(leads.status, "CONTACTED"));
+  } else if (isInterested) {
+    conditions.push(inArray(leads.status, ["INTERESTED", "QUALIFIED"]));
+  } else if (isNeedsAction) {
+    conditions.push(isNull(leads.nextAction));
+  } else if (filters.status) {
+    conditions.push(eq(leads.status, filters.status as typeof leads.status.enumValues[number]));
+  }
+  // If isViewAll is true, no status condition is added so everything is returned
+
   if (filters.q) {
     const query = `%${filters.q}%`;
     conditions.push(
@@ -103,6 +145,8 @@ export default async function LeadsPage({
       .toUpperCase() || "U";
 
   const isFilteringBySource = Boolean(filters.source);
+  const sourceParam = filters.source ? `&source=${encodeURIComponent(filters.source)}` : "";
+  const sourceOnlyParam = filters.source ? `?source=${encodeURIComponent(filters.source)}` : "";
 
   return (
     <div className="app-shell">
@@ -162,7 +206,7 @@ export default async function LeadsPage({
           </div>
         </header>
 
-        {/* SHEET-WISE FILTER TABS (Solves mixing up of leads!) */}
+        {/* SHEET-WISE FILTER TABS */}
         <section className="sheet-selector-panel">
           <div className="sheet-selector-header">
             <div>
@@ -181,7 +225,7 @@ export default async function LeadsPage({
           <div className="sheet-chips-scroll">
             {/* All Leads Pill */}
             <Link
-              href={filters.status ? `/leads?status=${filters.status}` : "/leads"}
+              href="/leads"
               className={`sheet-chip ${!filters.source ? "active" : ""}`}
             >
               <span className="chip-icon">🗂</span>
@@ -198,9 +242,7 @@ export default async function LeadsPage({
               return (
                 <Link
                   key={group.source}
-                  href={`/leads?source=${encodeURIComponent(group.source)}${
-                    filters.status ? `&status=${filters.status}` : ""
-                  }`}
+                  href={`/leads?source=${encodeURIComponent(group.source)}`}
                   className={`sheet-chip ${isSelected ? "active" : ""}`}
                 >
                   <span className="chip-icon">{isSheet ? "📁" : "👤"}</span>
@@ -217,60 +259,99 @@ export default async function LeadsPage({
           <div className="list-top">
             <div>
               <h2>
-                {rows.length} {rows.length === 1 ? "lead" : "leads"}
-                {filters.source ? ` in ${filters.source}` : ""}
-                {filters.status ? ` (${filters.status.replaceAll("_", " ")})` : ""}
-                {filters.attention ? " requiring attention" : ""}
+                {isPending && (
+                  <>
+                    {rows.length} pending {rows.length === 1 ? "lead" : "leads"} to call
+                    {filters.source ? ` in ${filters.source.replace("Sheet: ", "")}` : ""}
+                  </>
+                )}
+                {isContacted && (
+                  <>
+                    {rows.length} contacted {rows.length === 1 ? "lead" : "leads"}
+                    {filters.source ? ` in ${filters.source.replace("Sheet: ", "")}` : ""}
+                  </>
+                )}
+                {isInterested && (
+                  <>
+                    {rows.length} interested {rows.length === 1 ? "lead" : "leads"}
+                    {filters.source ? ` in ${filters.source.replace("Sheet: ", "")}` : ""}
+                  </>
+                )}
+                {isNeedsAction && (
+                  <>
+                    {rows.length} leads requiring attention
+                    {filters.source ? ` in ${filters.source.replace("Sheet: ", "")}` : ""}
+                  </>
+                )}
+                {isViewAll && (
+                  <>
+                    {rows.length} total leads (complete history)
+                    {filters.source ? ` in ${filters.source.replace("Sheet: ", "")}` : ""}
+                  </>
+                )}
               </h2>
               <p>
-                {filters.source
-                  ? `Filtered sheet view: showing only leads from ${filters.source}`
-                  : "All leads assigned to sales team and ready for action."}
+                {isPending
+                  ? "Active calling queue. Once a lead is called, it automatically moves to the Contacted list and vanishes from here."
+                  : isContacted
+                  ? "All leads that have been contacted or attempted."
+                  : isInterested
+                  ? "Leads who expressed positive interest in ARKA services."
+                  : isNeedsAction
+                  ? "Leads requiring immediate follow-up or next action definition."
+                  : "Complete lead directory including both pending and contacted records."}
               </p>
             </div>
           </div>
 
-          {/* Sub Filters */}
-          <div className="filters">
+          {/* Sub Filters / Tabs with dynamic counts */}
+          <div className="lead-queue-tabs">
+            {/* 1. Pending to Call (Default) */}
             <Link
-              className={`link ${!filters.status && !filters.attention ? "active-filter" : ""}`}
-              href={filters.source ? `/leads?source=${encodeURIComponent(filters.source)}` : "/leads"}
+              className={`queue-tab ${isPending ? "active" : ""}`}
+              href={sourceOnlyParam ? `/leads${sourceOnlyParam}` : "/leads"}
+              title="Only leads waiting to be called. Contacted leads vanish from this list."
             >
-              All in view
+              📞 To Call / Pending <b>{pendingCount}</b>
             </Link>
+
+            {/* 2. Contacted Tab */}
             <Link
-              className={`link ${filters.attention === "no-next-action" ? "active-filter" : ""}`}
-              href={`/leads?attention=no-next-action${
-                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
-              }`}
+              className={`queue-tab ${isContacted ? "active" : ""}`}
+              href={`/leads?status=CONTACTED${sourceParam}`}
+              title="All leads that have been contacted or attempted"
             >
-              Needs action
+              ✓ Contacted <b>{contactedCount}</b>
             </Link>
+
+            {/* 3. Needs Action Tab */}
             <Link
-              className={`link ${filters.status === "NEW" ? "active-filter" : ""}`}
-              href={`/leads?status=NEW${
-                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
-              }`}
+              className={`queue-tab ${isNeedsAction ? "active" : ""}`}
+              href={`/leads?attention=no-next-action${sourceParam}`}
+              title="Leads missing next actions"
             >
-              New
+              ⚠️ Needs Action <b>{needsActionCount}</b>
             </Link>
+
+            {/* 4. Interested Tab */}
             <Link
-              className={`link ${filters.status === "CONTACTED" ? "active-filter" : ""}`}
-              href={`/leads?status=CONTACTED${
-                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
-              }`}
+              className={`queue-tab ${isInterested ? "active" : ""}`}
+              href={`/leads?status=INTERESTED${sourceParam}`}
+              title="Interested prospects"
             >
-              Contacted
+              🎯 Interested <b>{interestedCount}</b>
             </Link>
+
+            {/* 5. All History Tab */}
             <Link
-              className={`link ${filters.status === "INTERESTED" ? "active-filter" : ""}`}
-              href={`/leads?status=INTERESTED${
-                filters.source ? `&source=${encodeURIComponent(filters.source)}` : ""
-              }`}
+              className={`queue-tab ${isViewAll ? "active" : ""}`}
+              href={`/leads?view=all${sourceParam}`}
+              title="Complete history of all leads (both pending and contacted)"
             >
-              Interested
+              🗂 All History <b>{currentSheetTotal}</b>
             </Link>
-            <span>Prioritised by score — open a lead to log calls or view details.</span>
+
+            <span className="queue-hint">Prioritised by score — click Open to call or review.</span>
           </div>
 
           {/* Table */}
@@ -386,11 +467,27 @@ export default async function LeadsPage({
           {rows.length === 0 && (
             <div className="empty-leads-view">
               <p className="empty-note">
-                No leads found matching this view.{" "}
-                {filters.source && (
-                  <Link href="/leads" className="link">
-                    View all sheets instead
-                  </Link>
+                {isPending ? (
+                  <>
+                    🎉 <b>All leads in this view have been contacted!</b>
+                    <br />
+                    Check the{" "}
+                    <Link
+                      href={`/leads?status=CONTACTED${sourceParam}`}
+                      className="link"
+                      style={{ fontWeight: 700 }}
+                    >
+                      Contacted list ({contactedCount})
+                    </Link>{" "}
+                    or pick another sheet above.
+                  </>
+                ) : (
+                  <>
+                    No leads found in this view.{" "}
+                    <Link href="/leads" className="link">
+                      View all sheets
+                    </Link>
+                  </>
                 )}
               </p>
             </div>
