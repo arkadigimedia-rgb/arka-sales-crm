@@ -1,1 +1,177 @@
-.detail-header{margin-top:20px}.muted{color:var(--muted);font-size:.85rem;margin:6px 0 0}.detail-list{margin:14px 0}.detail-list div{display:grid;grid-template-columns:130px 1fr;border-bottom:1px solid var(--line);padding:11px 0;font-size:.84rem}.detail-list dt{color:var(--muted)}.detail-list dd{margin:0;overflow-wrap:anywhere}.next-action{margin-top:18px;padding:13px;background:#eff6f2;border-radius:8px}.next-action span{display:block;font-size:.66rem;color:var(--muted);font-weight:700;letter-spacing:.08em;margin-bottom:5px}.next-action b{font-size:.84rem}.record-counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.record-counts span{padding:7px 9px;background:#f3f6f4;border-radius:7px;font-size:.75rem;color:var(--muted)}.record-counts b{color:var(--ink);margin-left:3px}
+.detail-header{margin-top:20px;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:15px}
+.detail-header-left{flex:1;min-width:280px}
+.muted{color:var(--muted);font-size:.85rem;margin:6px 0 0}
+.detail-list{margin:14px 0}
+.detail-list div{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--line);padding:11px 0;font-size:.84rem;align-items:center}
+.detail-list dt{color:var(--muted)}
+.detail-list dd{margin:0;overflow-wrap:anywhere}
+.next-action{margin-top:18px;padding:13px;background:#eff6f2;border-radius:8px}
+.next-action span{display:block;font-size:.66rem;color:var(--muted);font-weight:700;letter-spacing:.08em;margin-bottom:5px}
+.next-action b{font-size:.84rem}
+.record-counts{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}
+.record-counts span{padding:7px 9px;background:#f3f6f4;border-radius:7px;font-size:.75rem;color:var(--muted)}
+.record-counts b{color:var(--ink);margin-left:3px}
+
+/* Calling & WhatsApp Quick Action Bar */
+.header-contact-actions {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.lead-call-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #16634b;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 9px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(22, 99, 75, 0.25);
+  transition: all 0.15s ease;
+}
+
+.lead-call-btn:hover {
+  background: #104837;
+  transform: translateY(-1px);
+}
+
+.lead-whatsapp-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  background: #25d366;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.86rem;
+  padding: 9px 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+  transition: all 0.15s ease;
+}
+
+.lead-whatsapp-btn:hover {
+  background: #1ebc59;
+  transform: translateY(-1px);
+}
+
+/* Quick Dial Banner in Call Summary */
+.quick-dial-banner {
+  background: #edf4f1;
+  border: 1px solid #c9ded6;
+  border-radius: 10px;
+  padding: 14px 16px;
+  margin: 16px 0 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.quick-dial-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.quick-dial-label {
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  color: #16634b;
+  text-transform: uppercase;
+}
+
+.quick-dial-number {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #10271f;
+  font-family: 'Manrope', sans-serif;
+}
+
+.quick-dial-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.quick-call-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #16634b;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+}
+
+.quick-call-cta:hover {
+  background: #104837;
+}
+
+.quick-wa-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #25d366;
+  color: #ffffff !important;
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 0.82rem;
+  padding: 8px 14px;
+  border-radius: 7px;
+  transition: all 0.15s ease;
+}
+
+.quick-wa-cta:hover {
+  background: #1ebc59;
+}
+
+.row-action-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 5px;
+  text-decoration: none;
+  margin-left: 8px;
+}
+
+.row-action-pill.call {
+  background: #edf4f1;
+  color: #16634b;
+}
+
+.row-action-pill.wa {
+  background: #e8f5e9;
+  color: #1e7e34;
+}
+
+@media (max-width: 768px) {
+  .detail-header {
+    flex-direction: column;
+  }
+  .quick-dial-banner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .quick-dial-actions {
+    width: 100%;
+  }
+  .quick-call-cta, .quick-wa-cta {
+    flex: 1;
+    justify-content: center;
+  }
+}

@@ -8,6 +8,7 @@ import { CallOutcomeForm } from "@/components/call-outcome-form";
 import { ConnectionStatus } from "@/components/connection-status";
 import { InstallPwaButton } from "@/components/install-pwa-button";
 import { LogoutButton } from "@/components/logout-button";
+import "@/app/details.css";
 
 export default async function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const user = await pageActor();
@@ -75,16 +76,9 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
     minute: "2-digit",
   });
 
-  const contact = [
-    ["Contact", lead.contactName],
-    ["Phone", lead.phone],
-    ["Email", lead.email],
-    ["Website", lead.website],
-    ["Location", lead.location],
-    ["Sheet / Source", lead.source || "Direct Entry"],
-    ["Date Uploaded / Added", uploadDateStr],
-    ["Service interest", lead.serviceInterest],
-  ].filter(([, value]) => value);
+  const rawPhone = lead.phone || "";
+  const cleanDigits = rawPhone.replace(/[^0-9]/g, "");
+  const waPhone = cleanDigits.length === 10 ? `91${cleanDigits}` : cleanDigits;
 
   const lastCall = callRows[0];
   const initials =
@@ -180,14 +174,34 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
           </div>
         </div>
 
+        {/* Lead Detail Header */}
         <header className="detail-header">
-          <div>
+          <div className="detail-header-left">
             <p className="eyebrow">
               {lead.source ? `${lead.source} · ` : ""}SCORE {lead.score}
             </p>
             <h1>{lead.companyName}</h1>
             <p className="muted">{lead.location || "Location not provided"}</p>
+
+            {/* Direct Call & WhatsApp Action Buttons in Header */}
+            {lead.phone && (
+              <div className="header-contact-actions">
+                <a href={`tel:${lead.phone}`} className="lead-call-btn" title="Tap to call directly">
+                  📞 Call Now ({lead.phone})
+                </a>
+                <a
+                  href={`https://wa.me/${waPhone}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="lead-whatsapp-btn"
+                  title="Open WhatsApp chat"
+                >
+                  💬 Chat on WhatsApp
+                </a>
+              </div>
+            )}
           </div>
+
           <div>
             <span className={`priority ${lead.priority.toLowerCase()}`}>{lead.priority}</span>{" "}
             <span className="stage">{lead.status.replaceAll("_", " ")}</span>
@@ -195,6 +209,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
         </header>
 
         <section className="two-column">
+          {/* Left Panel: Contact and Opportunity */}
           <div className="panel">
             <div className="panel-head">
               <div>
@@ -203,13 +218,84 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
               </div>
             </div>
             <dl className="detail-list">
-              {contact.map(([label, value]) => (
-                <div key={label}>
-                  <dt>{label}</dt>
-                  <dd>{value}</dd>
+              <div>
+                <dt>Contact</dt>
+                <dd><b>{lead.contactName}</b></dd>
+              </div>
+
+              {lead.phone && (
+                <div>
+                  <dt>Phone</dt>
+                  <dd>
+                    <b>{lead.phone}</b>
+                    <a href={`tel:${lead.phone}`} className="row-action-pill call" title="Call">
+                      📞 Call
+                    </a>
+                    <a
+                      href={`https://wa.me/${waPhone}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="row-action-pill wa"
+                      title="WhatsApp"
+                    >
+                      💬 WhatsApp
+                    </a>
+                  </dd>
                 </div>
-              ))}
+              )}
+
+              {lead.email && (
+                <div>
+                  <dt>Email</dt>
+                  <dd><a href={`mailto:${lead.email}`} className="link">{lead.email}</a></dd>
+                </div>
+              )}
+
+              {lead.website && (
+                <div>
+                  <dt>Website</dt>
+                  <dd>
+                    <a
+                      href={lead.website.startsWith("http") ? lead.website : `https://${lead.website}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="link"
+                    >
+                      {lead.website}
+                    </a>
+                  </dd>
+                </div>
+              )}
+
+              {lead.location && (
+                <div>
+                  <dt>Location</dt>
+                  <dd>{lead.location}</dd>
+                </div>
+              )}
+
+              <div>
+                <dt>Sheet / Source</dt>
+                <dd>
+                  <span style={{ fontWeight: 600, color: "#16634b" }}>
+                    {lead.source || "Direct Entry"}
+                  </span>
+                </dd>
+              </div>
+
+              <div>
+                <dt>Date Added</dt>
+                <dd>{uploadDateStr}</dd>
+              </div>
+
+              {lead.serviceInterest && (
+                <div>
+                  <dt>Service interest</dt>
+                  <dd><b>{lead.serviceInterest}</b></dd>
+                </div>
+              )}
             </dl>
+
             <div className="next-action">
               <span>NEXT ACTION</span>
               <b>{lead.nextAction || "No next action has been recorded."}</b>
@@ -217,6 +303,7 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
             {lead.notes && <p className="empty-note">{lead.notes}</p>}
           </div>
 
+          {/* Right Panel: Contact Summary & Call Outcome Form */}
           <div className="panel">
             <div className="panel-head">
               <div>
@@ -243,6 +330,31 @@ export default async function LeadDetail({ params }: { params: Promise<{ id: str
               <br />
               Next follow-up: {lead.nextFollowUpAt ? lead.nextFollowUpAt.toLocaleString() : "Not scheduled"}
             </p>
+
+            {/* Quick Dial Banner directly above the Call Form */}
+            {lead.phone && (
+              <div className="quick-dial-banner">
+                <div className="quick-dial-info">
+                  <span className="quick-dial-label">Ready to connect:</span>
+                  <b className="quick-dial-number">{lead.phone}</b>
+                </div>
+                <div className="quick-dial-actions">
+                  <a href={`tel:${lead.phone}`} className="quick-call-cta" title="Start Call">
+                    📞 Call Now
+                  </a>
+                  <a
+                    href={`https://wa.me/${waPhone}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="quick-wa-cta"
+                    title="Start WhatsApp Chat"
+                  >
+                    💬 WhatsApp
+                  </a>
+                </div>
+              </div>
+            )}
+
             <CallOutcomeForm
               leadId={lead.id}
               initialNextLeadId={nextLead?.id}
